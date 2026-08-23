@@ -703,7 +703,7 @@ const DEFAULTS={
      paralelo o escribirse a mano; el catálogo publicado la consulta al
      abrirse, así no hay que republicar cada vez que cambia. */
   ves:{on:true,mode:'bcv',manual:'',adj:'0',dec:2,last:0,lastAt:'',lastSrc:''},
-  rateNote:'',
+  rateNote:'Precios en bolívares calculados a la tasa del día. Se confirman al hacer el pedido.',
   round:{mode:'int',step:1},
   exportQ:'equilibrada',
   links:[],
@@ -768,7 +768,7 @@ const FUENTES={
   bcv:{label:'BCV (oficial)',tries:[
     /* 1º el archivo que deja el robot: es el número que publica bcv.org.ve,
        leído en el servidor porque su web no permite lectura desde navegador */
-    {url:'tasa.json', pick:'usd', at:'fecha', src:'BCV (bcv.org.ve)'},
+    {url:'tasa.json', pick:'usd', at:'fecha', src:'BCV (bcv.org.ve)', trust:1},
     /* 2º respaldo si el robot no está instalado o falló ese día */
     {url:'https://open.er-api.com/v6/latest/USD', pick:'rates.VES', at:'time_last_update_utc', src:'BCV (respaldo externo)'}
   ]},
@@ -1315,7 +1315,7 @@ async function buildData(embed){
           round:{mode:S.round.mode,step:num(S.round.step)||1},
           /* rutas absolutas: el catálogo vive en /slug/, no en la raíz */
           tries:((S.ves&&FUENTES[S.ves.mode])?FUENTES[S.ves.mode].tries:[]).map(t=>({
-            url:/^https?:/.test(t.url)?t.url:(ghURL()+t.url), pick:t.pick, at:t.at, src:t.src}))},
+            url:/^https?:/.test(t.url)?t.url:(ghURL()+t.url), pick:t.pick, at:t.at, src:t.src, trust:t.trust||0}))},
     links:S.links.filter(l=>l.url&&l.label),
     opts:S.opts,
     items:[]
@@ -2430,12 +2430,13 @@ function actualizarTasa(){
       var nueva=v*(1+(T.adj||0)/100);
       /* un valor disparatado se ignora: más vale la tasa con la que se
          publicó que precios absurdos por un fallo de la fuente */
-      if(T.base>0&&(nueva>T.base*3||nueva<T.base/3))return;
+      if(!t.trust&&T.base>0&&(nueva>T.base*3||nueva<T.base/3))return;
       cur[1].rate=nueva;
       items.forEach(function(it){
         it.prices[1]={list:rnd(it.prices[0].list*nueva),final:rnd(it.prices[0].final*nueva)};
       });
       var f=pickPath(j,t.at);
+      T.vigente=nueva; T.vigenteAt=f?String(f):"";
       paintNote("Tasa Bs. "+fmtR(nueva)+(f?" · "+(fechaCorta(f)||String(f)):""));
       draw();bar();
       if(openId)open(openId);
@@ -2481,6 +2482,12 @@ function wa(txt){return D.wa.phone?"https://wa.me/"+D.wa.phone+"?text="+encodeUR
 function lineOf(it){
   var c=cur[ci],p=pr(it,ci);
   return "• "+it.name+(it.sku?" ["+it.sku+"]":"")+" — *"+fmt(p.final,c)+"*";
+}
+/* Deja constancia de la tasa con la que se calculo el monto en bolivares. */
+function pieTasa(){
+  if(ci===0||cur.length<2)return "";
+  var r=T.vigente||cur[1].rate;
+  return "\n_Calculado a Bs. "+fmtR(r)+" por dólar"+(T.vigenteAt?" ("+T.vigenteAt+")":"")+"._";
 }
 
 /* ---------- tarjetas ---------- */
@@ -2549,7 +2556,7 @@ function open(id){
     : it.stock==="count"?(it.count>0?it.count+" disponibles":"Agotado")
     : it.stock==="out"?"Agotado":"";
   var msg=(D.wa.pre||"Hola! Me interesa este producto:")+"\n\n"+lineOf(it)+
-    (it.sku?"":"")+"\n\n"+(D.biz.name||"");
+    pieTasa()+"\n\n"+(D.biz.name||"");
   var alts=cur.map(function(cc,k){return k===ci?null:cc.code+": "+fmt(it.prices[k].final,cc);}).filter(Boolean);
 
   $("#pn").innerHTML=
@@ -2602,7 +2609,7 @@ function bar(){
   var sel=items.filter(function(it){return pick[it.id]});
   var tot=sel.reduce(function(s,it){return s+(pr(it,ci).final||0)},0);
   var msg="Hola! Quiero pedir:\n\n"+sel.map(lineOf).join("\n")+
-    "\n\n*Total: "+fmt(tot,c)+"*"+(c.rate!==1?"\n_(tasa 1 "+cur[0].code+" = "+c.rate+" "+c.code+")_":"");
+    "\n\n*Total: "+fmt(tot,c)+"*"+pieTasa();
   f.hidden=false;
   f.innerHTML='<button class="clr" type="button" data-clear title="Vaciar">✕</button>'+
     '<div class="txt"><b>'+sel.length+" producto"+(sel.length>1?"s":"")+"</b>Total "+fmt(tot,c)+"</div>"+
