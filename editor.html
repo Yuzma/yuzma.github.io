@@ -1,0 +1,2365 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Catálogo — Editor</title>
+<meta name="color-scheme" content="light dark">
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --border:#e2e5ea;
+  --text:#14161a; --muted:#5f6672; --brand:#0b7a4b; --brand-ink:#ffffff;
+  --accent:#25D366; --danger:#c0392b; --warn:#b26a00;
+  --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.06),0 6px 20px rgba(16,24,40,.06);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#101215;--surface:#181b20;--surface-2:#1f232a;--border:#2b3038;
+        --text:#e8eaed;--muted:#9aa2ad;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);}
+}
+*{box-sizing:border-box}
+/* display:block/grid en img y .pthumb pisan el atributo hidden si no se fuerza */
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;
+     -webkit-text-size-adjust:100%;overflow-wrap:break-word}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--brand)}
+
+.topbar{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);
+        display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap}
+.topbar h1{font-size:15px;margin:0;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.topbar .spacer{flex:1}
+.tabs{display:flex;gap:4px;overflow-x:auto;background:var(--surface);padding:0 10px 8px;
+      border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:49;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:999px;
+     font-size:13.5px;font-weight:600;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--brand);color:var(--brand-ink)}
+main{max-width:1080px;margin:0 auto;padding:16px 14px 96px}
+.panel[hidden]{display:none}
+
+.btn{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 13px;
+     font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;min-height:38px}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.wa{background:var(--accent);border-color:var(--accent);color:#062d16}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,var(--border))}
+.btn.sm{padding:5px 9px;min-height:32px;font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+      box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.card>h2{margin:0 0 4px;font-size:15px;font-weight:700}
+.hint{color:var(--muted);font-size:12.5px;margin:6px 0 12px}
+.grid{display:grid;gap:12px}
+@media(min-width:620px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}}
+label.f{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;
+        text-transform:uppercase;letter-spacing:.04em}
+input[type=text],input[type=number],input[type=url],input[type=tel],select,textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:var(--bg);min-height:40px}
+textarea{min-height:74px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);outline-offset:-1px;border-color:var(--brand)}
+input[type=color]{width:48px;height:40px;padding:2px;border:1px solid var(--border);border-radius:10px;background:var(--bg)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;color:var(--text);
+     text-transform:none;letter-spacing:0}
+.chk input{width:18px;height:18px;min-height:0;accent-color:var(--brand);flex:none}
+.pill{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.pill.ok{background:color-mix(in srgb,var(--brand) 15%,transparent);color:var(--brand)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.err{background:color-mix(in srgb,var(--danger) 15%,transparent);color:var(--danger)}
+.sep{height:1px;background:var(--border);margin:14px 0}
+
+.prow{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;
+      box-shadow:var(--shadow);overflow:hidden}
+.phead{display:flex;gap:10px;align-items:center;padding:10px 12px;cursor:pointer;user-select:none}
+.pthumb{width:46px;height:46px;border-radius:9px;object-fit:cover;background:var(--surface-2);flex:none;
+        display:grid;place-items:center;font-size:18px;color:var(--muted);border:1px solid var(--border)}
+.pmeta{flex:1;min-width:0}
+.pname{font-weight:650;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.psub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pbody{padding:0 12px 14px;border-top:1px solid var(--border);padding-top:14px}
+.pbody[hidden]{display:none}
+.drag{color:var(--muted);cursor:grab;font-size:16px;padding:0 2px;touch-action:none}
+.prow.dragging{opacity:.4}
+.prow.dragover{outline:2px dashed var(--brand);outline-offset:-2px}
+
+.mstrip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px}
+.mitem{position:relative;width:78px;height:78px;border-radius:10px;overflow:hidden;flex:none;
+       border:1px solid var(--border);background:var(--surface-2)}
+.mitem img,.mitem video{width:100%;height:100%;object-fit:cover;display:block}
+.mitem .x{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.65);color:#fff;border:0;border-radius:50%;
+          width:20px;height:20px;line-height:1;font-size:12px;display:grid;place-items:center;padding:0}
+.mitem .tag{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:9.5px;
+            text-align:center;padding:1px;text-transform:uppercase;letter-spacing:.05em}
+.madd{width:78px;height:78px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;
+      color:var(--muted);font-size:11px;display:grid;place-items:center;flex:none;text-align:center;padding:4px}
+
+.pricebox{background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+.pricebox .big{font-size:19px;font-weight:800;letter-spacing:-.02em}
+.pricebox .line{display:flex;justify-content:space-between;gap:10px;padding:2px 0;color:var(--muted)}
+.pricebox .line b{color:var(--text);font-weight:650}
+.strike{text-decoration:line-through;opacity:.55;font-weight:500;font-size:.82em}
+
+#preview-frame{width:100%;height:78vh;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:#14161a;color:#fff;
+       padding:10px 18px;border-radius:999px;font-size:13.5px;font-weight:600;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.3);
+       opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.empty{text-align:center;color:var(--muted);padding:40px 16px}
+.codebox{width:100%;min-height:130px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;
+         white-space:pre-wrap;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:11px}
+.stat{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.stat b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🛍️ Catálogo</h1>
+  <span class="pill" id="savestate">guardado</span>
+  <span class="spacer"></span>
+  <button class="btn sm" id="btn-backup">⬇︎ Respaldo</button>
+  <button class="btn sm" id="btn-restore">⬆︎ Restaurar</button>
+  <button class="btn sm primary" id="btn-export">📤 Generar catálogo</button>
+</div>
+<nav class="tabs" role="tablist">
+  <button class="tab" role="tab" data-tab="panel" aria-selected="true">Catálogos</button>
+  <button class="tab" role="tab" data-tab="productos" aria-selected="false">Productos</button>
+  <button class="tab" role="tab" data-tab="precios" aria-selected="false">Precios y tasas</button>
+  <button class="tab" role="tab" data-tab="marca" aria-selected="false">Marca y enlaces</button>
+  <button class="tab" role="tab" data-tab="vista" aria-selected="false">Vista cliente</button>
+  <button class="tab" role="tab" data-tab="publicar" aria-selected="false">Publicar</button>
+  <button class="tab" role="tab" data-tab="enviar" aria-selected="false">Enviar</button>
+  <button class="tab" role="tab" data-tab="ayuda" aria-selected="false">Ayuda</button>
+</nav>
+<main>
+
+<!-- ============ PANEL DE CATÁLOGOS ============ -->
+<section class="panel" id="p-panel">
+  <div class="card" id="who-card" hidden>
+    <h2>¿Quién eres?</h2>
+    <p class="hint">Se pregunta una sola vez en este teléfono. Sirve para saber quién hizo el último cambio
+      en cada catálogo — los tres teléfonos usan la misma cuenta, así que sin esto no hay forma de distinguir.</p>
+    <div class="row"><input type="text" id="who-name" placeholder="Tu nombre" style="flex:1;min-width:160px">
+      <button class="btn primary" id="btn-who">Guardar</button></div>
+  </div>
+
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn primary" id="btn-new-cat">+ Nuevo catálogo</button>
+    <button class="btn" id="btn-reload-cats">↻ Actualizar</button>
+    <span class="spacer" style="flex:1"></span>
+    <span class="pill" id="mode-pill"></span>
+  </div>
+  <div id="cats"></div>
+</section>
+
+<!-- ============ PRODUCTOS ============ -->
+<section class="panel" id="p-productos" hidden>
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn primary" id="btn-add">+ Agregar producto</button>
+    <button class="btn" id="btn-dup-demo">Cargar ejemplo</button>
+    <span class="spacer" style="flex:1"></span>
+    <span class="stat" id="prod-stats"></span>
+  </div>
+  <div id="products"></div>
+</section>
+
+<!-- ============ PRECIOS ============ -->
+<section class="panel" id="p-precios" hidden>
+  <div class="card">
+    <h2>Moneda base</h2>
+    <p class="hint">Es la moneda en la que escribes los costos y precios de tus productos. Todo lo demás se calcula a partir de ella.</p>
+    <div class="grid g3">
+      <div><label class="f">Código</label><input type="text" id="baseCode" maxlength="6" placeholder="USD"></div>
+      <div><label class="f">Símbolo</label><input type="text" id="baseSym" maxlength="4" placeholder="$"></div>
+      <div><label class="f">Decimales</label><input type="number" id="baseDec" min="0" max="4" step="1"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tasas de cambio</h2>
+    <p class="hint">Agrega una fila por cada moneda adicional que quieras mostrar. El cliente podrá cambiar entre ellas con un botón.</p>
+    <div id="rates"></div>
+    <button class="btn sm" id="btn-add-rate" style="margin-top:10px">+ Agregar tasa</button>
+    <div class="sep"></div>
+    <label class="f chk"><input type="checkbox" id="showAllRates"> Mostrar todas las monedas a la vez (en vez de un selector)</label>
+    <div style="margin-top:10px"><label class="f">Nota de tasa visible para el cliente</label>
+      <input type="text" id="rateNote" placeholder="Ej: Tasa BCV del día. Precios sujetos a cambio."></div>
+  </div>
+
+  <div class="card">
+    <h2>Ganancia global</h2>
+    <p class="hint">Se aplica a los productos en modo <b>Costo + ganancia</b>. Cada producto puede sobrescribirla con su propio porcentaje.</p>
+    <div class="grid g2">
+      <div>
+        <label class="f">Tipo de cálculo</label>
+        <select id="marginMode">
+          <option value="markup">Markup — % sobre el costo (precio = costo × (1 + %))</option>
+          <option value="margin">Margen — % sobre el precio de venta (precio = costo ÷ (1 − %))</option>
+        </select>
+      </div>
+      <div><label class="f">Porcentaje global (%)</label><input type="number" id="marginPct" step="0.1"></div>
+    </div>
+    <div class="pricebox" id="margin-explain"></div>
+  </div>
+
+  <div class="card">
+    <h2>Redondeo</h2>
+    <p class="hint">Se aplica al precio final en cada moneda, después de convertir.</p>
+    <div class="grid g2">
+      <div><label class="f">Regla</label>
+        <select id="roundMode">
+          <option value="none">Sin redondeo</option>
+          <option value="int">Al entero más cercano</option>
+          <option value="up">Hacia arriba (entero)</option>
+          <option value="99">Terminar en .99</option>
+          <option value="90">Terminar en .90</option>
+          <option value="step">Múltiplo de…</option>
+        </select>
+      </div>
+      <div><label class="f">Múltiplo</label><input type="number" id="roundStep" step="0.01" min="0.01"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MARCA Y ENLACES ============ -->
+<section class="panel" id="p-marca" hidden>
+  <div class="card">
+    <h2>Tu negocio</h2>
+    <div class="grid g2">
+      <div><label class="f">Nombre</label><input type="text" id="bizName" placeholder="Mi Tienda"></div>
+      <div><label class="f">Eslogan / subtítulo</label><input type="text" id="bizTag" placeholder="Envíos a todo el país"></div>
+    </div>
+    <div style="margin-top:12px"><label class="f">Logo</label>
+      <div class="row"><button class="btn sm" id="btn-logo">Subir imagen</button>
+        <button class="btn sm ghost" id="btn-logo-clear">Quitar</button>
+        <img id="logo-prev" class="pthumb" alt="" hidden></div>
+    </div>
+    <div class="grid g3" style="margin-top:12px">
+      <div><label class="f">Color de marca</label><input type="color" id="brandColor"></div>
+      <div><label class="f">Mensaje de portada</label><input type="text" id="heroMsg" placeholder="Catálogo actualizado"></div>
+      <div><label class="f">Válido hasta</label><input type="text" id="validUntil" placeholder="31/12"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>WhatsApp de pedidos</h2>
+    <p class="hint">Formato internacional, solo dígitos: código de país + número, <b>sin</b> el signo + y <b>sin</b> el 0 inicial.
+      Ejemplo Venezuela 0412-1234567 → <code>584121234567</code>.</p>
+    <div class="grid g2">
+      <div><label class="f">Número</label><input type="tel" id="waPhone" inputmode="numeric" placeholder="584121234567">
+        <div id="wa-check" style="margin-top:6px"></div></div>
+      <div><label class="f">Texto previo del mensaje</label><input type="text" id="waPre" placeholder="Hola! Me interesa este producto:"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Botones de marketplace y redes</h2>
+    <p class="hint">Aparecen como botones en el catálogo. Deja vacío lo que no uses.</p>
+    <div id="links"></div>
+    <button class="btn sm" id="btn-add-link" style="margin-top:10px">+ Agregar enlace</button>
+  </div>
+
+  <div class="card">
+    <h2>Opciones del catálogo</h2>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div><label class="f">Tamaño de las fotos</label>
+        <select id="optSize">
+          <option value="xl">Grande — 1 por fila en el teléfono</option>
+          <option value="lg">Mediano — 2 por fila (recomendado)</option>
+          <option value="sm">Compacto — 3 por fila</option>
+        </select></div>
+      <div><label class="f">Encuadre</label>
+        <select id="optFit">
+          <option value="cover">Rellenar — recorta los bordes, todo se ve parejo</option>
+          <option value="contain">Completa — no recorta nada, deja márgenes</option>
+        </select></div>
+    </div>
+    <label class="f chk"><input type="checkbox" id="optSearch"> Buscador de productos</label>
+    <label class="f chk"><input type="checkbox" id="optCats"> Filtro por categoría</label>
+    <label class="f chk"><input type="checkbox" id="optCart"> Permitir armar pedido de varios productos</label>
+    <label class="f chk"><input type="checkbox" id="optStock"> Mostrar aviso de agotado</label>
+    <label class="f chk"><input type="checkbox" id="optShare"> Botón de compartir en cada producto</label>
+  </div>
+</section>
+
+<!-- ============ VISTA CLIENTE ============ -->
+<section class="panel" id="p-vista" hidden>
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn primary" id="btn-refresh-prev">↻ Actualizar vista</button>
+    <select id="prev-size" style="width:auto"><option value="390">Móvil 390px</option><option value="768">Tablet 768px</option><option value="100%">Ancho completo</option></select>
+    <span class="spacer" style="flex:1"></span><span class="stat" id="prev-stats"></span>
+  </div>
+  <div style="display:flex;justify-content:center"><iframe id="preview-frame" title="Vista previa del catálogo"></iframe></div>
+</section>
+
+<!-- ============ ENVIAR ============ -->
+<section class="panel" id="p-enviar" hidden>
+  <div class="card">
+    <h2>1 · Archivo del catálogo</h2>
+    <p class="hint">Genera un archivo <b>.html</b> único que funciona solo, sin internet y sin instalar nada.
+      Se puede subir a un hosting para tener un enlace, enviar como documento, o abrirlo desde el teléfono.</p>
+    <div style="margin-bottom:12px"><label class="f">Calidad de las fotos en el archivo</label>
+      <select id="exportQ">
+        <option value="alta">Alta — 1600 px</option>
+        <option value="equilibrada">Equilibrada — 1100 px (recomendada)</option>
+        <option value="ligera">Ligera — 760 px</option>
+      </select>
+      <p class="hint" id="q-note" style="margin:6px 0 0"></p></div>
+    <div class="row">
+      <button class="btn primary" id="btn-export2">📤 Descargar catálogo.html</button>
+      <button class="btn" id="btn-print">🖨️ Imprimir / Guardar PDF</button>
+      <button class="btn ghost" id="btn-recalc">↻ Recalcular peso</button>
+    </div>
+    <div class="pricebox" id="export-size" style="margin-top:12px"></div>
+    <div class="hint" style="margin-top:10px;padding:10px 12px;background:var(--surface-2);border-radius:10px">
+      <b>Para enviar a muchos clientes:</b> sube este archivo a un hosting y comparte <b>el enlace</b>, no el archivo.
+      Un archivo de 5 MB enviado a 200 personas son 1000 MB descargados; el enlace pesa unos bytes, se ve dentro
+      de WhatsApp y si cambias precios se actualiza para todos sin volver a enviar nada.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Catálogo como texto para el chat</h2>
+    <p class="hint">Pégalo directo en la conversación de WhatsApp. Usa el formato de negritas de WhatsApp (*texto*).</p>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn sm" id="btn-copy-text">📋 Copiar texto</button>
+      <select id="txt-cur" style="width:auto"></select>
+      <label class="f chk" style="margin:0"><input type="checkbox" id="txt-links" checked> incluir enlaces</label>
+    </div>
+    <textarea class="codebox" id="wa-text" readonly></textarea>
+  </div>
+
+  <div class="card">
+    <h2>3 · Enlace directo de pedido</h2>
+    <p class="hint">Enlace <code>wa.me</code> que abre tu chat con el mensaje escrito. Ponlo en tu bio de Instagram o TikTok.</p>
+    <div class="row"><input type="text" id="wa-link" readonly style="flex:1;min-width:220px">
+      <button class="btn sm" id="btn-copy-link">📋 Copiar</button>
+      <a class="btn sm wa" id="btn-open-wa" target="_blank" rel="noopener">Probar</a></div>
+  </div>
+</section>
+<!-- ============ PUBLICAR ============ -->
+<section class="panel" id="p-publicar" hidden>
+
+  <!-- ---- pantalla normal: lo único que ve la tienda ---- -->
+  <div class="card" id="pub-ready" hidden>
+    <h2>Publicar el catálogo</h2>
+    <p class="hint" id="pub-sub"></p>
+    <button class="btn primary" id="btn-publish"
+            style="width:100%;min-height:56px;font-size:16px;justify-content:center">🚀 Publicar ahora</button>
+    <div class="pricebox" id="pub-result" style="margin-top:12px"></div>
+    <div class="sep"></div>
+    <label class="f">Enlace para los clientes</label>
+    <div class="row">
+      <input type="text" id="pub-url" readonly style="flex:1;min-width:200px">
+      <button class="btn sm" id="btn-copy-url">📋 Copiar</button>
+      <a class="btn sm" id="btn-open-url" target="_blank" rel="noopener">Abrir</a>
+      <a class="btn sm wa" id="btn-wa-url" target="_blank" rel="noopener">💬 Enviar</a>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <span style="flex:1"></span>
+      <button class="btn sm ghost" id="btn-pub-settings">⚙ Cambiar configuración</button>
+    </div>
+  </div>
+
+  <!-- ---- asistente: solo lo ve quien monta la herramienta ---- -->
+  <div id="pub-wizard">
+    <div class="card" style="border-color:var(--warn);border-width:2px">
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px">
+        <span style="font-size:26px;line-height:1">🔧</span>
+        <div>
+          <h2 style="margin:0 0 2px">Configuración inicial</h2>
+          <p style="margin:0;font-size:13.5px;color:var(--muted)">
+            Esta pantalla es solo para quien instala la herramienta.</p>
+        </div>
+      </div>
+      <div class="note-strong" style="background:var(--surface-2);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.55">
+        <b>Se hace una sola vez y nunca más.</b><br>
+        Al terminar los 4 pasos, todo esto desaparece y en su lugar queda un solo botón verde
+        que dice <b>Publicar ahora</b>. Eso es lo único que va a ver quien use el catálogo todos los días.
+      </div>
+      <div class="pricebox" id="pub-status" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Paso 1 · Crear la cuenta y el repositorio</h2>
+      <ol style="padding-left:20px;line-height:2;margin:0">
+        <li>Crear cuenta en <a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup</a> — gratis</li>
+        <li>Crear el repositorio en <a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a>:
+          <ul style="line-height:1.8">
+            <li>Nombre: <b>catalogo</b></li>
+            <li>Marcar <b>Public</b></li>
+            <li><b>Importante:</b> marcar la casilla <b>Add a README file</b></li>
+          </ul>
+        </li>
+      </ol>
+      <p class="hint" style="margin-top:10px">Sin el README el repositorio queda vacío y el paso 2 no aparece.</p>
+    </div>
+
+    <div class="card">
+      <h2>Paso 2 · Encender la publicación web</h2>
+      <p class="hint">En el repositorio: <b>Settings</b> → <b>Pages</b> → en <i>Source</i> elegir <b>Deploy from a branch</b>,
+        rama <b>main</b>, carpeta <b>/ (root)</b> → <b>Save</b>.</p>
+      <div class="row"><input type="text" id="gh-owner" placeholder="usuario de GitHub" style="flex:1">
+        <input type="text" id="gh-repo" placeholder="catalogo" style="flex:1"></div>
+      <p class="hint" style="margin-top:8px">Atajo a esa pantalla: <a href="#" id="gh-pages-link" target="_blank" rel="noopener">abrir Settings → Pages</a>
+        (llena los dos campos primero)</p>
+    </div>
+
+    <div class="card">
+      <h2>Paso 3 · Crear la llave de publicación</h2>
+      <p class="hint">Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">esta página</a> y configura:</p>
+      <div class="pricebox">
+        <div class="line"><span>Token name</span><b>catalogo</b></div>
+        <div class="line"><span>Expiration</span><b>No expiration</b></div>
+        <div class="line"><span>Repository access</span><b>Only select repositories → catalogo</b></div>
+        <div class="line"><span>Permissions → Contents</span><b>Read and write</b></div>
+      </div>
+      <p class="hint" style="margin-top:10px">No marques ningún otro permiso. Al final <b>Generate token</b> y copia el texto
+        que empieza por <code>github_pat_</code>. GitHub solo lo muestra una vez.</p>
+      <div style="margin-top:10px"><label class="f">Pegar la llave aquí</label>
+        <input type="text" id="gh-token" placeholder="github_pat_..." autocomplete="off" spellcheck="false"></div>
+      <p class="hint" style="margin-top:8px"><b>No expiration</b> está disponible porque la cuenta de la tienda
+        es personal. Las cuentas de organización sí tienen tope de 366 días.</p>
+      <div style="margin-top:10px"><label class="f">Vencimiento — dejar vacío si elegiste «No expiration»</label>
+        <input type="text" id="gh-exp" placeholder="sin vencimiento" inputmode="numeric"></div>
+      <p class="hint">Se guarda solo en este teléfono. <b>No se incluye en el archivo de Respaldo</b>,
+        para que un respaldo compartido nunca lleve la llave dentro.</p>
+    </div>
+
+    <div class="card">
+      <h2>Paso 4 · Probar</h2>
+      <div class="row">
+        <button class="btn primary" id="btn-gh-test">Probar conexión</button>
+        <button class="btn ghost" id="btn-gh-forget">Borrar la llave de este teléfono</button>
+      </div>
+      <div class="pricebox" id="gh-test-result" style="margin-top:12px">Sin probar todavía.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AYUDA ============ -->
+<section class="panel" id="p-ayuda" hidden>
+  <div class="card">
+    <h2>Lo que hay que hacer cada vez que cambia la tasa</h2>
+    <p class="hint">Toma menos de un minuto. No hay que tocar ningún producto.</p>
+    <ol style="padding-left:20px;margin:0;line-height:1.9">
+      <li>Pestaña <b>Precios y tasas</b> → cambiar el número de la tasa</li>
+      <li>Botón verde <b>Generar catálogo</b> arriba → se descarga un archivo</li>
+      <li>Subir ese archivo al hosting (paso de abajo)</li>
+    </ol>
+    <p class="hint" style="margin-top:12px">El enlace que tienen los clientes es siempre el mismo.
+      No hay que reenviarle nada a nadie: quien lo abra ya ve los precios nuevos.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="color:var(--warn)">Importante: cómo abrir esta herramienta</h2>
+    <p class="hint">Si arriba aparece una franja naranja de advertencia, las fotos no se están guardando bien.</p>
+    <p style="font-size:13.5px;margin:0 0 10px">Los navegadores bloquean el guardado de imágenes cuando un archivo
+      se abre con doble clic. Por eso esta herramienta debe abrirse desde una <b>dirección web</b>,
+      no desde la carpeta.</p>
+    <div class="pricebox">
+      <div class="line"><span>❌ Así no</span><b>doble clic en el archivo</b></div>
+      <div class="line"><span>✅ Así sí</span><b>https://…/editor.html</b></div>
+    </div>
+    <p class="hint" style="margin-top:10px">Quien te entregó esta herramienta debió dejarte esa dirección.
+      Guárdala en los favoritos del navegador.</p>
+  </div>
+
+  <div class="card">
+    <h2>Cómo publicar el catálogo</h2>
+    <ol style="padding-left:20px;margin:0;line-height:1.9">
+      <li>Entrar a <b>dash.cloudflare.com</b> con la cuenta de la tienda</li>
+      <li>Ir a <b>Workers &amp; Pages</b> → el proyecto de la tienda</li>
+      <li><b>Create deployment</b> → arrastrar el archivo descargado</li>
+      <li>Esperar unos segundos. Listo.</li>
+    </ol>
+    <p class="hint" style="margin-top:12px">El archivo que se sube debe llamarse <b>index.html</b>.
+      Si se descargó con otro nombre, renombrarlo antes de subirlo.</p>
+  </div>
+
+  <div class="card">
+    <h2>Respaldo — hazlo una vez por semana</h2>
+    <p class="hint">Los productos viven dentro del navegador de esta computadora. Si se formatea la máquina,
+      se borran los datos del navegador o se cambia de computadora, se pierde todo.</p>
+    <p style="font-size:13.5px;margin:0">Botón <b>⬇︎ Respaldo</b> arriba → guarda el archivo en una carpeta,
+      en el correo o en el teléfono. Para recuperarlo en otra computadora: abrir la herramienta ahí
+      y usar <b>⬆︎ Restaurar</b>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Preguntas rápidas</h2>
+    <p style="font-size:13.5px;margin:0 0 10px"><b>¿Markup o margen?</b><br>
+      Markup 30% sobre un costo de $10 da $13, y ganas $3 de una venta de $13 → margen real 23%.
+      Margen 30% sobre ese mismo costo da $14,29 y ganas $4,29. Si piensas «quiero ganar 30% de lo que
+      cobro», usa <b>margen</b>. Si piensas «le sumo 30% al costo», usa <b>markup</b>. La cajita gris
+      de esa pestaña te muestra los números reales.</p>
+    <p style="font-size:13.5px;margin:0 0 10px"><b>¿Por qué mi número de WhatsApp da error?</b><br>
+      Va sin el signo + y sin el 0 inicial. Un 0412-1234567 se escribe 584121234567.</p>
+    <p style="font-size:13.5px;margin:0 0 10px"><b>¿Puedo ocultar un producto sin borrarlo?</b><br>
+      Sí. Abre el producto y desmarca «Visible en el catálogo». Queda guardado pero no sale.</p>
+    <p style="font-size:13.5px;margin:0 0 10px"><b>El archivo pesa mucho y los clientes se quejan.</b><br>
+      Pestaña Enviar → baja la calidad de las fotos a «Ligera». O quita los videos y usa un enlace
+      de Instagram o TikTok en el campo «Enlace del producto».</p>
+    <p style="font-size:13.5px;margin:0"><b>¿Cuántas fotos por producto?</b><br>
+      Dos o tres funcionan bien. La primera es la portada y es la que decide si el cliente toca o pasa de largo.</p>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+<input type="file" id="filepick" hidden accept="image/*,video/*" multiple>
+<input type="file" id="jsonpick" hidden accept="application/json,.json">
+<script>
+(function(){
+'use strict';
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const $  = (s,r)=>(r||document).querySelector(s);
+const $$ = (s,r)=>Array.from((r||document).querySelectorAll(s));
+const uid = ()=>Math.random().toString(36).slice(2,10);
+const num = v=>{const n=parseFloat(String(v==null?'':v).replace(',','.'));return isFinite(n)?n:0;};
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+function bytes(n){if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(0)+' KB';return (n/1048576).toFixed(2)+' MB';}
+
+/* ============================================================
+   ALMACÉN DE MEDIOS — IndexedDB
+   localStorage tiene ~5 MB y lanza QuotaExceededError con pocas
+   fotos en base64. IndexedDB da 50 MB en móvil y GB en escritorio.
+   ============================================================ */
+const DB=(()=>{
+  let dbp=null, durable=true;
+  const mem=new Map();           /* respaldo en memoria si IndexedDB no está disponible
+                                    (incógnito, data: URLs, navegadores restringidos) */
+  function open(){
+    if(dbp)return dbp;
+    dbp=new Promise((res,rej)=>{
+      let r;
+      try{r=indexedDB.open('catalogo-media',1);}catch(e){return rej(e);}
+      r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('media'))r.result.createObjectStore('media',{keyPath:'id'});};
+      r.onsuccess=()=>res(r.result);
+      r.onerror=()=>rej(r.error);
+      r.onblocked=()=>rej(new Error('blocked'));
+      setTimeout(()=>rej(new Error('timeout')),5000);
+    });
+    return dbp;
+  }
+  async function st(mode){const db=await open();return db.transaction('media',mode).objectStore('media');}
+  const P=q=>new Promise((res,rej)=>{q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
+  function fail(){if(durable){durable=false;warnStorage();}}
+  return{
+    durable:()=>durable,
+    async put(r){try{return await P((await st('readwrite')).put(r));}catch(e){fail();mem.set(r.id,r);return r.id;}},
+    async get(id){try{const v=await P((await st('readonly')).get(id));return v||mem.get(id);}catch(e){fail();return mem.get(id);}},
+    async del(id){try{await P((await st('readwrite')).delete(id));}catch(e){fail();}mem.delete(id);},
+    async all(){try{const v=await P((await st('readonly')).getAll());return (v&&v.length)?v:Array.from(mem.values());}
+                catch(e){fail();return Array.from(mem.values());}}
+  };})();
+
+let warned=false;
+function warnStorage(kind){
+  if(warned)return;warned=true;
+  const fotos='⚠ Las FOTOS no se están guardando de forma permanente. '+
+    'Los textos y precios sí. Abre esta herramienta desde una dirección http:// o https:// '+
+    '— mira la pestaña Ayuda. Mientras tanto, usa «Respaldo» antes de cerrar.';
+  const todo='⚠ Este navegador no está guardando NADA de forma permanente. '+
+    'Abre la herramienta desde una dirección http:// o https:// — mira la pestaña Ayuda.';
+  const d=document.createElement('div');
+  d.style.cssText='position:sticky;top:0;z-index:99;background:#b26a00;color:#fff;padding:9px 14px;'+
+    'font-size:13px;font-weight:600;text-align:center;line-height:1.4';
+  d.textContent=kind==='all'?todo:fotos;
+  document.body.insertBefore(d,document.body.firstChild);
+}
+/* Se comprueba al arrancar, no cuando el usuario ya cargó 40 fotos.
+   Chrome trata cada file:// como origen aislado y bloquea IndexedDB si las
+   cookies de terceros están bloqueadas (ya es el comportamiento por defecto);
+   Firefox lanza SecurityError directamente. localStorage es más permisivo,
+   así que los dos casos se distinguen y se avisa de forma distinta. */
+async function probeStorage(){
+  let lsOK=true;
+  try{localStorage.setItem('__probe','1');localStorage.removeItem('__probe');}catch(e){lsOK=false;}
+  const id='__probe__';
+  await DB.put({id,blob:new Blob(['x']),type:'text/plain'});
+  const idbOK=DB.durable();
+  if(idbOK)await DB.del(id);
+  if(!lsOK)warnStorage('all');
+  else if(!idbOK)warnStorage('media');
+}
+
+const urlCache=new Map();
+/* Acepta un id suelto o un objeto de medio. Prioriza la copia local
+   (instantánea, y cubre el minuto que GitHub Pages tarda en servir un
+   archivo recién subido); si no la hay, cae a la ruta del repositorio. */
+async function mediaURL(m){
+  const obj=(m&&typeof m==='object')?m:null;
+  const id=obj?obj.id:m;
+  if(obj&&obj.src==='url')return obj.url;
+  if(urlCache.has(id))return urlCache.get(id);
+  const rec=await DB.get(id);
+  if(rec&&rec.blob){const u=URL.createObjectURL(rec.blob);urlCache.set(id,u);return u;}
+  if(obj&&obj.path)return obj.path;
+  return '';
+}
+function extOf(type){
+  if(/webp/.test(type))return 'webp';
+  if(/png/.test(type))return 'png';
+  if(/mp4/.test(type))return 'mp4';
+  if(/webm/.test(type))return 'webm';
+  if(/quicktime|mov/.test(type))return 'mov';
+  return 'jpg';
+}
+/* Guarda un archivo: siempre en la caché del teléfono, y además en el
+   repositorio cuando hay modo compartido, para que los otros teléfonos lo vean. */
+async function storeMedia(id,blob){
+  await DB.put({id:id,blob:blob,type:blob.type});
+  if(!teamMode())return{src:'db'};
+  const path='media/'+id+'.'+extOf(blob.type||'');
+  const r=await ghPutFile(path,await blobToB64(blob),null,'Subir archivo'+(WHO?' ('+WHO+')':''));
+  if(r.error||r.conflict){toast('Se guardó en este teléfono, pero no se pudo subir: '+(r.error||'conflicto'));
+    return{src:'db'};}
+  return{src:'repo',path:path};
+}
+async function fetchRepoBlob(path){
+  try{const r=await fetch(path,{cache:'no-cache'});if(!r.ok)return null;return await r.blob();}
+  catch(e){return null;}
+}
+function blobToDataURL(b){return new Promise(res=>{const f=new FileReader();f.onload=()=>res(f.result);f.onerror=()=>res('');f.readAsDataURL(b);});}
+
+/* Comprime a WebP: ~50% menos peso que JPEG a calidad equivalente.
+   Fija ancho máximo para que la imagen principal (elemento LCP en ~77%
+   de las páginas de producto) no retrase el renderizado. */
+async function compressImage(file){
+  try{
+    const bmp=await createImageBitmap(file);
+    const maxW=1600, sc=Math.min(1,maxW/bmp.width);
+    const w=Math.max(1,Math.round(bmp.width*sc)), h=Math.max(1,Math.round(bmp.height*sc));
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d',{alpha:false}).drawImage(bmp,0,0,w,h);
+    if(bmp.close)bmp.close();
+    let blob=await new Promise(r=>c.toBlob(r,'image/webp',0.82));
+    if(!blob||blob.size>file.size)blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    if(!blob)return{blob:file,w:0,h:0};
+    return{blob,w,h};
+  }catch(e){return{blob:file,w:0,h:0};}
+}
+function videoMeta(file){return new Promise(res=>{
+  const v=document.createElement('video');v.preload='metadata';
+  v.onloadedmetadata=()=>{res({dur:v.duration||0,w:v.videoWidth||0,h:v.videoHeight||0});URL.revokeObjectURL(v.src);};
+  v.onerror=()=>res({dur:0,w:0,h:0});v.src=URL.createObjectURL(file);});}
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const KEY='catalogo-state-v1';
+const DEFAULTS={
+  v:1,
+  biz:{name:'Mi Tienda',tagline:'',logo:null,color:'#0b7a4b',heroMsg:'',validUntil:''},
+  wa:{phone:'',pre:'Hola! Me interesa este producto:'},
+  cur:{code:'USD',sym:'$',dec:2},
+  rates:[],
+  rateNote:'',
+  showAllRates:false,
+  margin:{mode:'markup',pct:30},
+  round:{mode:'none',step:1},
+  exportQ:'equilibrada',
+  links:[],
+  opts:{size:'lg',fit:'cover',search:true,cats:true,cart:true,stock:true,share:true},
+  products:[]
+};
+let S=structuredClone(DEFAULTS);
+let cloudT;
+/* Cada cambio se escribe de inmediato en el teléfono (borrador) y se sube
+   a la nube un par de segundos después. Si se cae la conexión a mitad de
+   una edición, el borrador la conserva y se recupera al volver a abrir. */
+function save(){
+  if(!CURSLUG)return;
+  S._editor=WHO;S._editado=new Date().toISOString();
+  markState('sin subir','warn');
+  try{localStorage.setItem(DRAFT+CURSLUG,JSON.stringify(S));}catch(e){warnStorage('all');}
+  clearTimeout(cloudT);
+  cloudT=setTimeout(cloudSave,2000);
+}
+async function cloudSave(){
+  clearTimeout(cloudT);cloudT=null;
+  if(!CURSLUG)return;
+  markState(teamMode()?'subiendo…':'guardando…','warn');
+  const r=await Store.put(CURSLUG,S,CURSHA);
+  if(r.conflict){markState('conflicto','err');showConflict();return;}
+  if(r.error){markState('sin subir','err');toast(r.error);return;}
+  CURSHA=r.sha||CURSHA;
+  try{localStorage.removeItem(DRAFT+CURSLUG);}catch(e){}
+  markState(teamMode()?'en la nube':'guardado','ok');
+}
+
+/* ============================================================
+   MOTOR DE PRECIOS
+   ============================================================ */
+function effPct(p){
+  if(p.mode!=='cost')return null;
+  const own=(p.marginPct===''||p.marginPct==null)?null:num(p.marginPct);
+  return own===null?num(S.margin.pct):own;
+}
+/* Devuelve el precio en MONEDA BASE, sin convertir ni redondear. */
+function basePrice(p){
+  let list;
+  if(p.mode==='direct'){ list=num(p.price); }
+  else{
+    const cost=num(p.cost), pct=effPct(p);
+    if(S.margin.mode==='margin'){
+      const d=1-pct/100;
+      list = d<=0 ? NaN : cost/d;          // margen sobre precio de venta
+    }else{
+      list = cost*(1+pct/100);             // markup sobre el costo
+    }
+  }
+  const disc=clamp(num(p.discountPct),0,99);
+  const final = disc>0 ? list*(1-disc/100) : list;
+  return {list, final, hasDisc:disc>0};
+}
+function roundVal(v){
+  if(!isFinite(v))return v;
+  const r=S.round;
+  switch(r.mode){
+    case 'int': return Math.round(v);
+    case 'up' : return Math.ceil(v);
+    case '99' : return Math.max(0.99,Math.round(v)-0.01);
+    case '90' : return Math.max(0.90,Math.round(v)-0.10);
+    case 'step':{const st=num(r.step)||1;return Math.round(v/st)*st;}
+    default: return v;
+  }
+}
+/* Lista de monedas activas: base + tasas válidas */
+function currencies(){
+  const out=[{code:S.cur.code||'USD',sym:S.cur.sym||'$',dec:clamp(parseInt(S.cur.dec)||0,0,4),rate:1,base:true}];
+  S.rates.forEach(r=>{const v=num(r.rate);if(v>0&&r.code)out.push(
+    {code:r.code,sym:r.sym||'',dec:clamp(parseInt(r.dec)||0,0,4),rate:v,base:false});});
+  return out;
+}
+function fmt(v,c){
+  if(!isFinite(v))return '—';
+  const s=v.toLocaleString('es-VE',{minimumFractionDigits:c.dec,maximumFractionDigits:c.dec});
+  return (c.sym?c.sym+' ':'')+s+(c.sym?'':' '+c.code);
+}
+/* Precio final por moneda, ya convertido y redondeado */
+function priceIn(p,c){
+  const b=basePrice(p);
+  return {list:roundVal(b.list*c.rate), final:roundVal(b.final*c.rate), hasDisc:b.hasDisc};
+}
+
+/* ============================================================
+   WHATSAPP
+   ============================================================ */
+function cleanPhone(v){return String(v||'').replace(/\D/g,'');}
+/* E.164: código de país + número, sin + y sin 0 inicial. 8 a 15 dígitos. */
+function phoneOK(v){const d=cleanPhone(v);return d.length>=8&&d.length<=15&&d[0]!=='0';}
+function waLink(text){
+  const d=cleanPhone(S.wa.phone);
+  if(!d)return '';
+  return 'https://wa.me/'+d+(text?'?text='+encodeURIComponent(text):'');
+}
+
+/* ============================================================
+   PESTAÑAS
+   ============================================================ */
+const LIBRES={panel:1,ayuda:1,publicar:1};
+$$('.tab').forEach(t=>t.addEventListener('click',()=>{
+  const dest=t.dataset.tab;
+  if(!CURSLUG&&!LIBRES[dest]){
+    toast('Abre un catálogo primero');
+    const p=$('.tab[data-tab="panel"]');if(p&&p!==t)p.click();
+    return;
+  }
+  $$('.tab').forEach(x=>x.setAttribute('aria-selected',String(x===t)));
+  $$('.panel').forEach(p=>p.hidden=true);
+  $('#p-'+dest).hidden=false;
+  if(dest==='panel')renderCats();
+  if(t.dataset.tab==='precios'){renderRates();renderMarginExplain();}
+  if(t.dataset.tab==='marca'){renderLinks();checkPhone();}
+  if(t.dataset.tab==='vista')refreshPreview();
+  if(t.dataset.tab==='enviar')refreshSend();
+  if(t.dataset.tab==='publicar')paintPublish();
+  window.scrollTo(0,0);
+}));
+
+/* ============================================================
+   EDITOR DE PRODUCTOS
+   ============================================================ */
+const openRows=new Set();
+function newProduct(){return{
+  id:uid(),name:'',sku:'',cat:'',desc:'',highlights:[],
+  mode:'cost',price:'',cost:'',marginPct:'',discountPct:'',
+  stockMode:'none',stockCount:'',media:[],link:'',active:true};}
+
+function prodSubtitle(p){
+  const cs=currencies(); const parts=[];
+  cs.slice(0,2).forEach(c=>{const v=priceIn(p,c);parts.push(fmt(v.final,c));});
+  if(p.cat)parts.unshift(p.cat);
+  return parts.join(' · ')||'sin precio';
+}
+
+function renderProducts(){
+  const wrap=$('#products');
+  if(!S.products.length){
+    wrap.innerHTML='<div class="empty">Todavía no hay productos.<br>Toca <b>Agregar producto</b> para empezar.</div>';
+    $('#prod-stats').textContent='';return;
+  }
+  wrap.innerHTML='';
+  S.products.forEach((p,i)=>wrap.appendChild(productRow(p,i)));
+  const act=S.products.filter(p=>p.active!==false).length;
+  const med=S.products.reduce((n,p)=>n+p.media.length,0);
+  $('#prod-stats').innerHTML='<span><b>'+S.products.length+'</b> productos</span><span><b>'+act+'</b> visibles</span><span><b>'+med+'</b> archivos</span>';
+}
+
+function productRow(p,idx){
+  const el=document.createElement('div');
+  el.className='prow';el.dataset.id=p.id;el.draggable=false;
+  const open=openRows.has(p.id);
+
+  const head=document.createElement('div');head.className='phead';
+  head.innerHTML='<span class="drag" draggable="true" title="Arrastrar para reordenar">⋮⋮</span>'+
+    '<div class="pthumb" data-thumb>🖼️</div>'+
+    '<div class="pmeta"><div class="pname"></div><div class="psub"></div></div>'+
+    '<span class="pill" data-badge></span><span style="color:var(--muted)">'+(open?'▾':'▸')+'</span>';
+  head.querySelector('.pname').textContent=p.name||'(sin nombre)';
+  head.querySelector('.psub').textContent=prodSubtitle(p);
+  const badge=head.querySelector('[data-badge]');
+  if(p.active===false){badge.textContent='oculto';badge.className='pill';}
+  else if(p.stockMode==='out'){badge.textContent='agotado';badge.className='pill err';}
+  else badge.remove();
+  head.addEventListener('click',e=>{
+    if(e.target.classList.contains('drag'))return;
+    if(openRows.has(p.id))openRows.delete(p.id);else openRows.add(p.id);
+    renderProducts();
+  });
+  el.appendChild(head);
+
+  const thumb=head.querySelector('[data-thumb]');
+  const first=p.media[0];
+  if(first)mediaURL(first).then(u=>{
+    if(u&&thumb.isConnected){const im=document.createElement('img');im.className='pthumb';im.src=u;im.alt='';thumb.replaceWith(im);}});
+
+  if(!open)return el;
+
+  const body=document.createElement('div');body.className='pbody';
+  body.innerHTML=
+   '<div class="grid g2">'+
+     '<div><label class="f">Nombre del producto</label><input type="text" data-k="name"></div>'+
+     '<div><label class="f">Categoría</label><input type="text" data-k="cat" list="catlist" placeholder="Ej: Camisas"></div>'+
+   '</div>'+
+   '<div class="grid g2" style="margin-top:12px">'+
+     '<div><label class="f">Descripción corta</label><input type="text" data-k="desc" maxlength="140" placeholder="Una línea. Lo que lo hace distinto."></div>'+
+     '<div><label class="f">Código / SKU</label><input type="text" data-k="sku"></div>'+
+   '</div>'+
+   '<div style="margin-top:12px"><label class="f">Puntos clave <span style="text-transform:none;font-weight:500">— una viñeta por línea, máximo 5</span></label>'+
+     '<textarea data-k="highlights" placeholder="Talla S a XL&#10;Algodón 100%&#10;Envío en 24 h"></textarea>'+
+     '<p class="hint" style="margin:4px 0 0">Los compradores que comparan varios productos no leen párrafos: escanean viñetas.</p></div>'+
+
+   '<div class="sep"></div>'+
+   '<label class="f">Fotos y videos</label>'+
+   '<div class="mstrip" data-strip></div>'+
+   '<div class="row" style="margin-top:4px">'+
+     '<button class="btn sm" data-act="addfile">📁 Subir archivo</button>'+
+     '<button class="btn sm" data-act="addurl">🔗 Pegar enlace</button>'+
+     '<span class="hint" style="margin:0">La 1ª imagen es la portada. Video ideal: 30–60 s.</span></div>'+
+
+   '<div class="sep"></div>'+
+   '<div class="grid g2">'+
+     '<div><label class="f">Cómo se calcula el precio</label>'+
+       '<select data-k="mode"><option value="cost">Costo + ganancia</option><option value="direct">Precio directo</option></select></div>'+
+     '<div data-costwrap><label class="f">Costo (en <span data-basecode></span>)</label><input type="number" step="0.01" min="0" data-k="cost"></div>'+
+     '<div data-pricewrap hidden><label class="f">Precio final (en <span data-basecode2></span>)</label><input type="number" step="0.01" min="0" data-k="price"></div>'+
+   '</div>'+
+   '<div class="grid g2" style="margin-top:12px">'+
+     '<div data-marginwrap><label class="f">Ganancia propia (%) <span style="text-transform:none;font-weight:500">— vacío = usar la global</span></label>'+
+       '<input type="number" step="0.1" data-k="marginPct" placeholder="global"></div>'+
+     '<div><label class="f">Descuento (%)</label><input type="number" step="0.1" min="0" max="99" data-k="discountPct"></div>'+
+   '</div>'+
+   '<div class="pricebox" data-preview></div>'+
+
+   '<div class="sep"></div>'+
+   '<div class="grid g2">'+
+     '<div><label class="f">Disponibilidad</label>'+
+       '<select data-k="stockMode">'+
+         '<option value="none">No mostrar</option>'+
+         '<option value="in">Disponible</option>'+
+         '<option value="count">Cantidad exacta</option>'+
+         '<option value="out">Agotado</option></select></div>'+
+     '<div data-countwrap hidden><label class="f">Unidades reales en existencia</label><input type="number" min="0" step="1" data-k="stockCount"></div>'+
+   '</div>'+
+   '<p class="hint" style="margin-top:6px">Pon el número real. Inventar escasez ("¡solo quedan 2!") está catalogado como patrón engañoso y la FTC emitió cartas de advertencia en 2023 por urgencia falsa.</p>'+
+
+   '<div style="margin-top:12px"><label class="f">Enlace del producto (marketplace, tienda, publicación)</label>'+
+     '<input type="url" data-k="link" placeholder="https://..."></div>'+
+
+   '<div class="sep"></div>'+
+   '<div class="row">'+
+     '<label class="f chk" style="margin:0"><input type="checkbox" data-k="active"> Visible en el catálogo</label>'+
+     '<span style="flex:1"></span>'+
+     '<button class="btn sm" data-act="dup">Duplicar</button>'+
+     '<button class="btn sm danger" data-act="del">Eliminar</button>'+
+   '</div>';
+  el.appendChild(body);
+
+  /* poblar campos */
+  body.querySelectorAll('[data-k]').forEach(inp=>{
+    const k=inp.dataset.k;
+    if(k==='highlights')inp.value=(p.highlights||[]).join('\n');
+    else if(inp.type==='checkbox')inp.checked=p[k]!==false;
+    else inp.value=p[k]==null?'':p[k];
+    const ev=(inp.tagName==='SELECT'||inp.type==='checkbox')?'change':'input';
+    inp.addEventListener(ev,()=>{
+      if(k==='highlights')p.highlights=inp.value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,5);
+      else if(inp.type==='checkbox')p[k]=inp.checked;
+      else p[k]=inp.value;
+      save();
+      if(k==='mode'||k==='stockMode')syncRow();
+      updatePreviewBox();
+      head.querySelector('.pname').textContent=p.name||'(sin nombre)';
+      head.querySelector('.psub').textContent=prodSubtitle(p);
+    });
+  });
+  body.querySelectorAll('[data-basecode],[data-basecode2]').forEach(s=>s.textContent=S.cur.code||'USD');
+
+  function syncRow(){
+    const isCost=p.mode==='cost';
+    body.querySelector('[data-costwrap]').hidden=!isCost;
+    body.querySelector('[data-marginwrap]').hidden=!isCost;
+    body.querySelector('[data-pricewrap]').hidden=isCost;
+    body.querySelector('[data-countwrap]').hidden=p.stockMode!=='count';
+  }
+  function updatePreviewBox(){
+    const box=body.querySelector('[data-preview]');
+    const cs=currencies();
+    let h='';
+    if(p.mode==='cost'){
+      const pct=effPct(p), cost=num(p.cost), b=basePrice(p);
+      const gain=b.list-cost;
+      const realMargin=b.list>0?(gain/b.list*100):0;
+      h+='<div class="line"><span>Costo</span><b>'+fmt(cost,cs[0])+'</b></div>';
+      h+='<div class="line"><span>'+(S.margin.mode==='margin'?'Margen':'Markup')+' aplicado'+
+         ((p.marginPct===''||p.marginPct==null)?' (global)':' (propio)')+'</span><b>'+pct+'%</b></div>';
+      h+='<div class="line"><span>Ganancia por unidad</span><b>'+fmt(gain,cs[0])+'</b></div>';
+      h+='<div class="line"><span>Margen real sobre venta</span><b>'+realMargin.toFixed(1)+'%</b></div>';
+    }
+    h+='<div class="sep" style="margin:8px 0"></div>';
+    cs.forEach(c=>{
+      const v=priceIn(p,c);
+      h+='<div class="line"><span>'+c.code+(c.base?' (base)':' · tasa '+c.rate)+'</span>'+
+         '<span class="big">'+(v.hasDisc?'<span class="strike">'+fmt(v.list,c)+'</span> ':'')+fmt(v.final,c)+'</span></div>';
+    });
+    box.innerHTML=h;
+  }
+  syncRow();updatePreviewBox();
+
+  /* medios */
+  const strip=body.querySelector('[data-strip]');
+  function paintStrip(){
+    strip.innerHTML='';
+    p.media.forEach((m,i)=>{
+      const d=document.createElement('div');d.className='mitem';
+      const tag=m.type==='video'?'video':(i===0?'portada':'');
+      d.innerHTML=(m.type==='video'
+          ?'<video muted playsinline preload="metadata"></video>'
+          :'<img alt="" loading="lazy">')+
+        '<button class="x" title="Quitar">✕</button>'+(tag?'<span class="tag">'+tag+'</span>':'');
+      const node=d.querySelector('img,video');
+      mediaURL(m).then(u=>{if(u)node.src=u;});
+      d.querySelector('.x').addEventListener('click',async e=>{
+        e.stopPropagation();
+        if(m.src!=='url'){await DB.del(m.id);
+          if(urlCache.has(m.id)){URL.revokeObjectURL(urlCache.get(m.id));urlCache.delete(m.id);}}
+        if(m.src==='repo'&&m.path)ghDelFile(m.path);
+        p.media.splice(i,1);save();paintStrip();renderProducts();
+      });
+      d.addEventListener('click',()=>{ if(i===0)return;
+        p.media.unshift(p.media.splice(i,1)[0]);save();paintStrip();renderProducts();toast('Ahora es la portada');});
+      strip.appendChild(d);
+    });
+    const add=document.createElement('button');add.className='madd';add.type='button';
+    add.innerHTML='+<br>archivo';
+    add.addEventListener('click',()=>pickFiles(p));
+    strip.appendChild(add);
+  }
+  paintStrip();
+  body.querySelector('[data-act="addfile"]').addEventListener('click',()=>pickFiles(p));
+  body.querySelector('[data-act="addurl"]').addEventListener('click',()=>{
+    const u=prompt('Pega el enlace de la imagen o del video (.jpg .png .webp .mp4):');
+    if(!u)return;
+    const isVid=/\.(mp4|webm|mov|m4v)(\?|$)/i.test(u);
+    p.media.push({id:uid(),type:isVid?'video':'image',src:'url',url:u.trim(),w:0,h:0});
+    save();paintStrip();renderProducts();
+  });
+  body.querySelector('[data-act="dup"]').addEventListener('click',()=>{
+    const c=structuredClone(p);c.id=uid();c.name=(p.name||'')+' (copia)';
+    c.media=p.media.map(m=>Object.assign({},m));
+    S.products.splice(idx+1,0,c);save();renderProducts();
+  });
+  body.querySelector('[data-act="del"]').addEventListener('click',async ()=>{
+    if(!confirm('¿Eliminar "'+(p.name||'este producto')+'"? No se puede deshacer.'))return;
+    for(const m of p.media)if(m.src==='db')await DB.del(m.id);
+    S.products.splice(idx,1);openRows.delete(p.id);save();renderProducts();
+  });
+  return el;
+}
+
+/* ---------- carga de archivos ---------- */
+let pickTarget=null;
+function pickFiles(p){pickTarget=p;$('#filepick').value='';$('#filepick').click();}
+$('#filepick').addEventListener('change',async e=>{
+  const files=Array.from(e.target.files||{});const p=pickTarget;if(!p||!files.length)return;
+  toast('Procesando '+files.length+' archivo(s)…');
+  for(const f of files){
+    const id=uid();
+    if(f.type.startsWith('video/')){
+      const meta=await videoMeta(f);
+      if(f.size>12*1048576&&!confirm('"'+f.name+'" pesa '+bytes(f.size)+
+        '. Un catálogo pesado tarda en abrir por WhatsApp. ¿Agregarlo igual?\n\nAlternativa: súbelo a Instagram/TikTok y pega el enlace.'))continue;
+      if(meta.dur>90)toast('Video de '+Math.round(meta.dur)+' s. Lo ideal son 30–60 s.');
+      const loc=await storeMedia(id,f);
+      p.media.push(Object.assign({id,type:'video',w:meta.w,h:meta.h,dur:Math.round(meta.dur),size:f.size},loc));
+    }else if(f.type.startsWith('image/')){
+      const {blob,w,h}=await compressImage(f);
+      const loc=await storeMedia(id,blob);
+      p.media.push(Object.assign({id,type:'image',w,h,size:blob.size},loc));
+    }
+  }
+  save();renderProducts();toast('Listo');
+});
+
+$('#btn-add').addEventListener('click',()=>{
+  const p=newProduct();S.products.push(p);openRows.add(p.id);save();renderProducts();
+  window.scrollTo(0,document.body.scrollHeight);
+});
+
+/* ---------- reordenar ---------- */
+let dragId=null;
+$('#products').addEventListener('dragstart',e=>{
+  const h=e.target.closest('.drag');if(!h)return;
+  const row=h.closest('.prow');dragId=row.dataset.id;row.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragId);
+});
+$('#products').addEventListener('dragend',()=>{
+  dragId=null;$$('.prow').forEach(r=>r.classList.remove('dragging','dragover'));});
+$('#products').addEventListener('dragover',e=>{
+  if(!dragId)return;e.preventDefault();
+  const row=e.target.closest('.prow');if(!row)return;
+  $$('.prow').forEach(r=>r.classList.toggle('dragover',r===row&&r.dataset.id!==dragId));
+});
+$('#products').addEventListener('drop',e=>{
+  if(!dragId)return;e.preventDefault();
+  const row=e.target.closest('.prow');if(!row||row.dataset.id===dragId)return;
+  const from=S.products.findIndex(p=>p.id===dragId), to=S.products.findIndex(p=>p.id===row.dataset.id);
+  if(from<0||to<0)return;
+  S.products.splice(to,0,S.products.splice(from,1)[0]);
+  dragId=null;save();renderProducts();
+});
+
+/* ============================================================
+   PANEL DE PRECIOS
+   ============================================================ */
+const binders=[];
+function bindField(sel,get,set){
+  const el=$(sel);if(!el)return;
+  const paint=()=>{if(el.type==='checkbox')el.checked=!!get();else el.value=get();};
+  paint();binders.push(paint);
+  el.addEventListener(el.tagName==='SELECT'||el.type==='checkbox'?'change':'input',()=>{
+    set(el.type==='checkbox'?el.checked:el.value);save();afterSettings();});
+}
+/* Al cambiar de catálogo los campos se repintan; los listeners se
+   registran una sola vez para que no se dupliquen. */
+function refreshFields(){binders.forEach(f=>{try{f();}catch(e){}});}
+function afterSettings(){renderProducts();renderMarginExplain();}
+
+function renderRates(){
+  const wrap=$('#rates');wrap.innerHTML='';
+  if(!S.rates.length)wrap.innerHTML='<p class="hint" style="margin:0">Sin tasas adicionales. El catálogo mostrará solo '+(S.cur.code||'USD')+'.</p>';
+  S.rates.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='grid';d.style.cssText='grid-template-columns:1fr 1fr 1.4fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px';
+    d.innerHTML='<div><label class="f">Código</label><input type="text" maxlength="6" data-r="code"></div>'+
+      '<div><label class="f">Símbolo</label><input type="text" maxlength="4" data-r="sym"></div>'+
+      '<div><label class="f">1 '+(S.cur.code||'USD')+' =</label><input type="number" step="0.0001" min="0" data-r="rate"></div>'+
+      '<div><label class="f">Dec.</label><input type="number" min="0" max="4" data-r="dec"></div>'+
+      '<div><button class="btn sm danger" data-del>✕</button></div>';
+    d.querySelectorAll('[data-r]').forEach(inp=>{
+      inp.value=r[inp.dataset.r]==null?'':r[inp.dataset.r];
+      inp.addEventListener('input',()=>{r[inp.dataset.r]=inp.value;save();renderProducts();});
+    });
+    d.querySelector('[data-del]').addEventListener('click',()=>{S.rates.splice(i,1);save();renderRates();renderProducts();});
+    wrap.appendChild(d);
+  });
+}
+$('#btn-add-rate').addEventListener('click',()=>{
+  S.rates.push({id:uid(),code:'',sym:'',rate:'',dec:2});save();renderRates();});
+
+function renderMarginExplain(){
+  const pct=num(S.margin.pct), c=currencies()[0], ex=100;
+  let price;
+  if(S.margin.mode==='margin'){const d=1-pct/100;price=d<=0?NaN:ex/d;}
+  else price=ex*(1+pct/100);
+  const gain=price-ex, real=price>0?gain/price*100:0;
+  $('#margin-explain').innerHTML=
+    '<div class="line"><span>Ejemplo con costo de</span><b>'+fmt(ex,c)+'</b></div>'+
+    '<div class="line"><span>Precio de venta</span><b>'+fmt(price,c)+'</b></div>'+
+    '<div class="line"><span>Ganancia</span><b>'+fmt(gain,c)+'</b></div>'+
+    '<div class="line"><span>Margen real sobre la venta</span><b>'+(isFinite(real)?real.toFixed(1):'—')+'%</b></div>'+
+    (S.margin.mode==='margin'&&pct>=100?'<div class="line"><span style="color:var(--danger)">Un margen de 100% o más es imposible de calcular.</span></div>':'');
+}
+
+/* ============================================================
+   PANEL MARCA Y ENLACES
+   ============================================================ */
+const LINK_PRESETS=[
+  {label:'WhatsApp',icon:'💬'},{label:'Instagram',icon:'📷'},{label:'TikTok',icon:'🎵'},
+  {label:'Facebook',icon:'👍'},{label:'Marketplace',icon:'🏬'},{label:'MercadoLibre',icon:'🛒'},
+  {label:'Tienda online',icon:'🛍️'},{label:'Telegram',icon:'✈️'},{label:'Ubicación',icon:'📍'}];
+
+function renderLinks(){
+  const wrap=$('#links');wrap.innerHTML='';
+  if(!S.links.length)wrap.innerHTML='<p class="hint" style="margin:0">Sin enlaces todavía.</p>';
+  S.links.forEach((l,i)=>{
+    const d=document.createElement('div');d.className='grid';
+    d.style.cssText='grid-template-columns:64px 1fr 2fr auto;gap:8px;align-items:end;margin-bottom:10px';
+    d.innerHTML='<div><label class="f">Icono</label><input type="text" maxlength="2" data-l="icon"></div>'+
+      '<div><label class="f">Texto</label><input type="text" data-l="label" list="linkpresets"></div>'+
+      '<div><label class="f">Enlace</label><input type="url" data-l="url" placeholder="https://..."></div>'+
+      '<div><button class="btn sm danger" data-del>✕</button></div>';
+    d.querySelectorAll('[data-l]').forEach(inp=>{
+      inp.value=l[inp.dataset.l]||'';
+      inp.addEventListener('input',()=>{
+        l[inp.dataset.l]=inp.value;
+        if(inp.dataset.l==='label'&&!l.icon){
+          const pr=LINK_PRESETS.find(x=>x.label.toLowerCase()===inp.value.toLowerCase());
+          if(pr){l.icon=pr.icon;d.querySelector('[data-l="icon"]').value=pr.icon;}
+        }
+        save();});
+    });
+    d.querySelector('[data-del]').addEventListener('click',()=>{S.links.splice(i,1);save();renderLinks();});
+    wrap.appendChild(d);
+  });
+}
+$('#btn-add-link').addEventListener('click',()=>{S.links.push({id:uid(),icon:'',label:'',url:''});save();renderLinks();});
+
+$('#btn-logo').addEventListener('click',()=>{
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=async ()=>{const f=inp.files[0];if(!f)return;
+    const {blob}=await compressImage(f);const id=uid();
+    const loc=await storeMedia(id,blob);
+    await clearLogo();
+    S.biz.logo=Object.assign({id},loc);save();paintLogo();};
+  inp.click();
+});
+async function clearLogo(){
+  const l=S.biz.logo;if(!l)return;
+  const id=(typeof l==='object')?l.id:l;
+  await DB.del(id);
+  if(typeof l==='object'&&l.src==='repo'&&l.path)ghDelFile(l.path);
+}
+$('#btn-logo-clear').addEventListener('click',async ()=>{
+  await clearLogo();S.biz.logo=null;save();paintLogo();});
+function paintLogo(){
+  const im=$('#logo-prev');
+  if(!S.biz.logo){im.hidden=true;im.removeAttribute('src');return;}
+  mediaURL(S.biz.logo).then(u=>{if(u){im.src=u;im.hidden=false;}else{im.hidden=true;}});
+}
+function checkPhone(){
+  const el=$('#wa-check'), d=cleanPhone(S.wa.phone);
+  if(!d){el.innerHTML='<span class="pill warn">Sin número: no habrá botón de pedido</span>';return;}
+  if(phoneOK(d))el.innerHTML='<span class="pill ok">✓ Formato válido — wa.me/'+d+'</span>';
+  else el.innerHTML='<span class="pill err">Revisa: deben ser 8–15 dígitos, sin + y sin 0 inicial</span>';
+}
+
+/* ============================================================
+   EXPORTACIÓN
+   ============================================================ */
+/* Calidad de exportación: se guarda siempre el máster grande y se
+   re-escala al generar. Así una foto se sube una sola vez y puedes
+   producir un archivo liviano para difusión masiva o uno de alta
+   calidad para un cliente puntual, sin perder el original. */
+const QUALITY={
+  alta:       {w:1600,q:0.86,label:'Alta — para pocos clientes o cuando la foto es el argumento de venta'},
+  equilibrada:{w:1100,q:0.80,label:'Equilibrada — recomendada para envío masivo'},
+  ligera:     {w:760, q:0.72,label:'Ligera — para conexiones lentas o catálogos de muchos productos'}
+};
+async function scaleBlob(blob,maxW,q){
+  try{
+    const bmp=await createImageBitmap(blob);
+    if(bmp.width<=maxW){const r={blob,w:bmp.width,h:bmp.height};if(bmp.close)bmp.close();return r;}
+    const sc=maxW/bmp.width, w=Math.round(bmp.width*sc), h=Math.round(bmp.height*sc);
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d',{alpha:false}).drawImage(bmp,0,0,w,h);
+    if(bmp.close)bmp.close();
+    let out=await new Promise(r=>c.toBlob(r,'image/webp',q));
+    if(!out)out=await new Promise(r=>c.toBlob(r,'image/jpeg',q));
+    return{blob:(out&&out.size<blob.size)?out:blob,w,h};
+  }catch(e){return{blob,w:0,h:0};}
+}
+
+/* embed=true  → todo dentro del archivo (descarga, PDF, uso sin internet)
+   embed=false → las fotos quedan como archivos aparte y el catálogo las
+                 referencia; publicar es mucho más rápido desde el teléfono
+                 y al cliente le cargan de la caché en visitas repetidas. */
+async function buildData(embed){
+  const cs=currencies();
+  const Q=QUALITY[S.exportQ]||QUALITY.equilibrada;
+  const out={
+    biz:{name:S.biz.name,tagline:S.biz.tagline,color:S.biz.color,heroMsg:S.biz.heroMsg,validUntil:S.biz.validUntil,logo:''},
+    wa:{phone:cleanPhone(S.wa.phone),pre:S.wa.pre},
+    cur:cs,showAll:!!S.showAllRates,rateNote:S.rateNote,
+    links:S.links.filter(l=>l.url&&l.label),
+    opts:S.opts,
+    items:[]
+  };
+  if(S.biz.logo){
+    const l=S.biz.logo, lid=(typeof l==='object')?l.id:l, lpath=(typeof l==='object')?l.path:null;
+    if(!embed&&lpath)out.biz.logo='../'+lpath;
+    else{let r=await DB.get(lid);
+      let b=r&&r.blob?r.blob:(lpath?await fetchRepoBlob(lpath):null);
+      if(b)out.biz.logo=await blobToDataURL(b);}
+  }
+  for(const p of S.products){
+    if(p.active===false)continue;
+    if(!p.name)continue;
+    const media=[];
+    for(const m of p.media){
+      if(m.src==='url'){media.push({t:m.type,u:m.url,w:m.w||0,h:m.h||0});continue;}
+      if(!embed&&m.src==='repo'&&m.path){
+        media.push({t:m.type,u:'../'+m.path,w:m.w||0,h:m.h||0});continue;}
+      const r=await DB.get(m.id);
+      let b=r&&r.blob?r.blob:(m.path?await fetchRepoBlob(m.path):null);
+      if(!b)continue;
+      if(m.type==='image'){
+        const s=await scaleBlob(b,Q.w,Q.q);
+        media.push({t:'image',u:await blobToDataURL(s.blob),w:s.w||m.w||0,h:s.h||m.h||0});
+      }else{
+        media.push({t:'video',u:await blobToDataURL(b),w:m.w||0,h:m.h||0});
+      }
+    }
+    const prices=cs.map(c=>{const v=priceIn(p,c);return{list:v.list,final:v.final};});
+    out.items.push({
+      id:p.id,name:p.name,cat:p.cat||'',desc:p.desc||'',hl:p.highlights||[],sku:p.sku||'',
+      prices,disc:clamp(num(p.discountPct),0,99),
+      stock:p.stockMode||'none',count:num(p.stockCount),
+      media,link:p.link||''
+    });
+  }
+  return out;
+}
+async function buildHTML(embed){
+  const tpl=$('#tpl').textContent;
+  const data=await buildData(embed!==false);
+  const json=JSON.stringify(data).replace(/</g,'\\u003c');
+  /* replacement por función: evita que $&, $' o $` dentro de los datos
+     sean interpretados como patrones de sustitución por String.replace */
+  return tpl.replace('"__DATA__"',()=>json)
+            .replace(/<%\/script%>/g,()=>'<\/'+'script>');
+}
+function download(name,content,type){
+  const b=new Blob([content],{type:type||'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+async function doExport(){
+  if(!S.products.some(p=>p.active!==false&&p.name))return toast('Agrega al menos un producto con nombre');
+  toast('Generando…');
+  const html=await buildHTML();
+  const slug=(S.biz.name||'catalogo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'catalogo';
+  download(slug+'.html',html);
+  toast('Descargado — '+bytes(new Blob([html]).size));
+}
+$('#btn-export').addEventListener('click',doExport);
+$('#btn-export2').addEventListener('click',doExport);
+$('#btn-print').addEventListener('click',async ()=>{
+  const html=await buildHTML();const w=window.open('','_blank');
+  if(!w)return toast('El navegador bloqueó la ventana');
+  w.document.write(html);w.document.close();setTimeout(()=>w.print(),900);
+});
+
+/* ---------- vista previa ---------- */
+let prevURL=null;
+async function refreshPreview(){
+  const f=$('#preview-frame');
+  const html=await buildHTML();
+  if(prevURL)URL.revokeObjectURL(prevURL);
+  prevURL=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  f.src=prevURL;
+  const w=$('#prev-size').value;
+  f.style.width=w==='100%'?'100%':w+'px';
+  const size=new Blob([html]).size;
+  $('#prev-stats').innerHTML='<span>Peso del archivo: <b>'+bytes(size)+'</b></span>'+
+    (size>4*1048576?'<span class="pill warn">pesado para WhatsApp</span>':'<span class="pill ok">buen peso</span>');
+}
+$('#btn-refresh-prev').addEventListener('click',refreshPreview);
+$('#prev-size').addEventListener('change',()=>{const w=$('#prev-size').value;
+  $('#preview-frame').style.width=w==='100%'?'100%':w+'px';});
+
+/* ---------- texto para el chat ---------- */
+function waText(){
+  const ci=parseInt($('#txt-cur').value)||0;
+  const cs=currencies(), c=cs[Math.min(ci,cs.length-1)];
+  const inc=$('#txt-links').checked;
+  const L=[];
+  L.push('*'+(S.biz.name||'Catálogo').toUpperCase()+'*');
+  if(S.biz.tagline)L.push('_'+S.biz.tagline+'_');
+  if(S.biz.heroMsg)L.push(S.biz.heroMsg);
+  L.push('');
+  const byCat={};
+  S.products.filter(p=>p.active!==false&&p.name).forEach(p=>{(byCat[p.cat||'']=byCat[p.cat||'']||[]).push(p);});
+  Object.keys(byCat).forEach(cat=>{
+    if(cat)L.push('*'+cat.toUpperCase()+'*');
+    byCat[cat].forEach(p=>{
+      const v=priceIn(p,c);
+      let line='• '+p.name+' — '+(v.hasDisc?'~'+fmt(v.list,c)+'~ ':'')+'*'+fmt(v.final,c)+'*';
+      if(p.stockMode==='out')line+=' (agotado)';
+      else if(p.stockMode==='count'&&num(p.stockCount)>0)line+=' ('+num(p.stockCount)+' disp.)';
+      L.push(line);
+      if(p.desc)L.push('   '+p.desc);
+      (p.highlights||[]).slice(0,3).forEach(h=>L.push('   - '+h));
+      if(inc&&p.link)L.push('   '+p.link);
+    });
+    L.push('');
+  });
+  if(S.rateNote)L.push('_'+S.rateNote+'_');
+  if(!c.base)L.push('_Tasa usada: 1 '+cs[0].code+' = '+c.rate+' '+c.code+'_');
+  if(inc&&S.links.length){L.push('');S.links.filter(l=>l.url&&l.label).forEach(l=>L.push((l.icon||'')+' '+l.label+': '+l.url));}
+  if(S.biz.validUntil)L.push('','_Precios válidos hasta '+S.biz.validUntil+'_');
+  return L.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function refreshSend(){
+  const cs=currencies(), sel=$('#txt-cur'), cur=sel.value;
+  sel.innerHTML=cs.map((c,i)=>'<option value="'+i+'">'+c.code+'</option>').join('');
+  sel.value=cur&&cur<cs.length?cur:'0';
+  $('#wa-text').value=waText();
+  const l=waLink(S.wa.pre||'Hola! Quiero hacer un pedido.');
+  $('#wa-link').value=l||'(configura tu número de WhatsApp en la pestaña Marca)';
+  $('#btn-open-wa').href=l||'#';
+  $('#q-note').textContent=(QUALITY[S.exportQ]||QUALITY.equilibrada).label;
+  showExportInfo(null);
+}
+function showExportInfo(size){
+  const imgs=S.products.reduce((n,p)=>n+p.media.filter(m=>m.type==='image').length,0);
+  const vids=S.products.reduce((n,p)=>n+p.media.filter(m=>m.type==='video').length,0);
+  let h='<div class="line"><span>Productos incluidos</span><b>'+
+        S.products.filter(p=>p.active!==false&&p.name).length+'</b></div>'+
+        '<div class="line"><span>Imágenes / videos</span><b>'+imgs+' / '+vids+'</b></div>';
+  if(size==null){
+    h+='<div class="line"><span>Peso del archivo</span><b>toca «Recalcular peso»</b></div>';
+  }else{
+    h+='<div class="line"><span>Peso del archivo</span><b>'+bytes(size)+'</b></div>';
+    h+=size>4*1048576
+      ?'<div class="line"><span class="pill err">Muy pesado para enviar como archivo. Baja la calidad, quita videos, o comparte un enlace.</span></div>'
+      :size>1.5*1048576
+        ?'<div class="line"><span class="pill warn">Aceptable por enlace; pesado para enviar como archivo a muchos clientes.</span></div>'
+        :'<div class="line"><span class="pill ok">Abre rápido incluso con datos móviles.</span></div>';
+  }
+  $('#export-size').innerHTML=h;
+}
+async function recalc(){
+  toast('Calculando…');
+  const h=await buildHTML();
+  showExportInfo(new Blob([h]).size);
+}
+$('#txt-cur').addEventListener('change',()=>{$('#wa-text').value=waText();});
+$('#txt-links').addEventListener('change',()=>{$('#wa-text').value=waText();});
+function copy(txt,msg){
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(txt).then(()=>toast(msg));
+  else{const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();
+    try{document.execCommand('copy');toast(msg);}catch(e){toast('Copia manual');}t.remove();}
+}
+$('#btn-copy-text').addEventListener('click',()=>copy($('#wa-text').value,'Texto copiado'));
+$('#btn-copy-link').addEventListener('click',()=>copy($('#wa-link').value,'Enlace copiado'));
+
+/* ============================================================
+   PUBLICACIÓN EN GITHUB PAGES
+   La API de GitHub admite CORS desde cualquier origen, así que el
+   navegador puede escribir el archivo directamente. La llave se guarda
+   en una clave aparte de localStorage — nunca dentro del estado del
+   catálogo — para que el archivo de Respaldo no la lleve dentro.
+   ============================================================ */
+const GHKEY='catalogo-gh-v1';
+let GH=(()=>{try{return JSON.parse(localStorage.getItem(GHKEY)||'{}');}catch(e){return{};}})();
+function ghSave(){try{localStorage.setItem(GHKEY,JSON.stringify(GH));}catch(e){}}
+function ghReady(){return !!(GH.owner&&GH.repo&&GH.token&&GH.verified);}
+function ghURL(){
+  if(!GH.owner||!GH.repo)return '';
+  return GH.repo.toLowerCase()===(GH.owner+'.github.io').toLowerCase()
+    ? 'https://'+GH.owner+'.github.io/'
+    : 'https://'+GH.owner+'.github.io/'+GH.repo+'/';
+}
+function toB64(str){
+  const b=new TextEncoder().encode(str);
+  let s='';const CH=0x8000;
+  for(let i=0;i<b.length;i+=CH)s+=String.fromCharCode.apply(null,b.subarray(i,i+CH));
+  return btoa(s);
+}
+async function ghApi(path,method,payload){
+  const h={'Authorization':'Bearer '+GH.token,'Accept':'application/vnd.github+json',
+           'X-GitHub-Api-Version':'2022-11-28'};
+  const o={method:method||'GET',headers:h};
+  if(payload){h['Content-Type']='application/json';o.body=JSON.stringify(payload);}
+  let r;
+  try{r=await fetch('https://api.github.com'+path,o);}
+  catch(e){return{ok:false,status:0,body:null};}
+  let body=null;try{body=await r.json();}catch(e){}
+  return{ok:r.ok,status:r.status,body:body};
+}
+function ghErr(status,body){
+  if(status===0)return 'Sin conexión a internet.';
+  if(status===401)return 'La llave no es válida, venció o fue revocada. Genera una nueva en el paso 3.';
+  if(status===403)return 'GitHub rechazó la llave. Revisa que tenga el permiso Contents → Read and write.';
+  if(status===404)return 'No se encuentra el repositorio. Revisa el usuario y el nombre, y que la llave tenga acceso a ese repositorio.';
+  if(status===409)return 'Conflicto: el repositorio está vacío. Vuelve a crearlo marcando «Add a README file».';
+  if(status===422)return 'GitHub rechazó el archivo: '+((body&&body.message)||'puede ser demasiado grande. Baja la calidad de las fotos en la pestaña Enviar.');
+  return 'Error '+status+((body&&body.message)?': '+body.message:'');
+}
+
+async function ghTest(){
+  const box=$('#gh-test-result');
+  GH.owner=($('#gh-owner').value||'').trim().replace(/^@/,'');
+  GH.repo =($('#gh-repo').value||'').trim();
+  GH.token=($('#gh-token').value||'').trim();
+  GH.exp  =($('#gh-exp').value||'').trim();
+  if(!GH.owner||!GH.repo||!GH.token){
+    box.innerHTML='<span class="pill err">Faltan datos. Completa usuario, repositorio y llave.</span>';return;}
+  box.textContent='Probando…';
+  const r=await ghApi('/repos/'+encodeURIComponent(GH.owner)+'/'+encodeURIComponent(GH.repo));
+  if(!r.ok){GH.verified=false;ghSave();
+    box.innerHTML='<span class="pill err">'+ghErr(r.status,r.body)+'</span>';return;}
+  const canPush=r.body&&r.body.permissions&&r.body.permissions.push;
+  let h='<div class="line"><span>Repositorio</span><b>'+(r.body.full_name||'')+'</b></div>';
+  h+='<div class="line"><span>Permiso de escritura</span><b>'+(canPush?'✓ sí':'✗ no')+'</b></div>';
+  h+='<div class="line"><span>Visibilidad</span><b>'+(r.body.private?'privado':'público')+'</b></div>';
+  if(canPush===false){
+    GH.verified=false;ghSave();
+    box.innerHTML=h+'<div class="line"><span class="pill err">La llave no puede escribir. Vuelve al paso 3 y pon Contents → Read and write.</span></div>';
+    return;}
+  if(r.body.private)h+='<div class="line"><span class="pill warn">Un repositorio privado no publica página web en el plan gratuito. Cámbialo a público.</span></div>';
+  GH.verified=true;ghSave();
+  h+='<div class="line"><span class="pill ok">✓ Todo listo para publicar</span></div>';
+  h+='<div class="line"><span>Enlace del catálogo</span><b>'+ghURL()+'</b></div>';
+  box.innerHTML=h;
+  paintPublish();
+}
+
+async function ghPublish(){
+  const btn=$('#btn-publish'), box=$('#pub-result');
+  if(!CURSLUG){box.innerHTML='<span class="pill err">Primero abre un catálogo desde la pestaña Catálogos.</span>';return;}
+  btn.disabled=true;btn.textContent='Guardando…';
+  try{
+    await cloudSave();                      /* que lo publicado y lo guardado coincidan */
+    btn.textContent='Generando…';
+    const html=await buildHTML(false);      /* fotos por referencia, no incrustadas */
+    const size=new Blob([html]).size;
+    btn.textContent='Subiendo…';
+    const path=CURSLUG+'/index.html';
+    let sha=null;
+    const cur=await ghGetFile(path);
+    if(cur&&cur.sha)sha=cur.sha;
+    const r=await ghPutFile(path,toB64(html),sha,'Publicar '+CURSLUG+(WHO?' ('+WHO+')':''));
+    if(r.conflict){box.innerHTML='<span class="pill err">Alguien publicó al mismo tiempo. Toca Publicar otra vez.</span>';return;}
+    if(r.error){box.innerHTML='<span class="pill err">'+r.error+'</span>';return;}
+    S._publicado=new Date().toISOString();
+    await cloudSave();
+    GH.last=S._publicado;GH.lastSize=size;ghSave();
+    box.innerHTML='<div class="line"><span class="pill ok">✓ Publicado</span><b>'+bytes(size)+'</b></div>'+
+      '<div class="line"><span>Los clientes lo verán en menos de un minuto.</span></div>';
+    paintPublish(true);
+  }catch(e){
+    box.innerHTML='<span class="pill err">No se pudo publicar: '+(e.message||e.name)+'</span>';
+  }finally{
+    btn.disabled=false;btn.textContent='🚀 Publicar ahora';
+  }
+}
+
+function paintPublish(keepResult){
+  const ready=ghReady();
+  $('#pub-ready').hidden=!ready;
+  $('#pub-wizard').hidden=ready&&!GH.showWizard;
+  if(ready&&GH.showWizard)$('#pub-wizard').hidden=false;
+  const u=CURSLUG?catURL(CURSLUG):ghURL();
+  $('#pub-url').value=u;
+  $('#btn-open-url').href=u||'#';
+  $('#btn-wa-url').href=u?('https://wa.me/?text='+encodeURIComponent(
+      (S.biz.name||'Nuestro catálogo')+'\n'+(S.biz.heroMsg||'')+'\n'+u)):'#';
+  let sub=CURSLUG?('Catálogo abierto: '+((S.biz&&S.biz.name)||CURSLUG)+' · '):'';
+  if(S._publicado){
+    const d=new Date(S._publicado);
+    sub+='publicado el '+d.toLocaleDateString('es-VE')+' a las '+
+        d.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'});
+  }else sub+='todavía sin publicar.';
+  $('#pub-sub').textContent=sub;
+  if(!keepResult&&!GH.last)$('#pub-result').innerHTML=
+    '<div class="line"><span>Toca el botón cada vez que cambies precios o productos.</span></div>';
+  /* aviso de vencimiento de la llave */
+  const st=$('#pub-status');
+  if(st){
+    if(!ready)st.innerHTML='<div class="line"><span class="pill warn">Sin configurar</span>'+
+      '<span>Completa los 4 pasos de abajo.</span></div>';
+    else{
+      let h='<div class="line"><span class="pill ok">Configurado</span><b>'+GH.owner+'/'+GH.repo+'</b></div>';
+      h+='<div class="line"><span>Enlace</span><b>'+u+'</b></div>';
+      st.innerHTML=h;
+    }
+  }
+  const exp=parseExp(GH.exp);
+  const warn=$('#exp-warn');
+  if(exp){
+    const dias=Math.round((exp-Date.now())/86400000);
+    if(dias<=30&&!warn){
+      const d=document.createElement('div');d.id='exp-warn';
+      d.style.cssText='position:sticky;top:0;z-index:98;background:#b26a00;color:#fff;padding:9px 14px;'+
+        'font-size:13px;font-weight:600;text-align:center;line-height:1.4';
+      d.textContent=dias<0
+        ? '⚠ La llave de publicación venció. Hay que generar una nueva (pestaña Publicar → paso 3).'
+        : '⚠ La llave de publicación vence en '+dias+' día(s). Genera una nueva antes de esa fecha (pestaña Publicar → paso 3).';
+      document.body.insertBefore(d,document.body.firstChild);
+    }
+  }
+}
+function parseExp(s){
+  if(!s)return null;
+  const m=String(s).match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(!m)return null;
+  const d=new Date(+m[3],+m[2]-1,+m[1]);
+  return isNaN(d)?null:d.getTime();
+}
+
+/* ============================================================
+   CAPA DE ALMACENAMIENTO
+   Con GitHub configurado, el repositorio es la base de datos
+   compartida: los tres teléfonos leen y escriben ahí, así que
+   todos ven lo mismo. Sin GitHub, funciona igual pero contra el
+   almacenamiento del propio teléfono, con un solo catálogo.
+   ============================================================ */
+const IDXKEY='catalogo-idx-v1', DKEY='catalogo-data-', DRAFT='catalogo-draft-', WHOKEY='catalogo-who-v1';
+let CATS=[], CURSLUG=null, CURSHA=null, WHO='';
+try{WHO=localStorage.getItem(WHOKEY)||'';}catch(e){}
+function teamMode(){return ghReady();}
+
+function b64ToStr(b64){
+  const bin=atob(String(b64).replace(/\s+/g,''));
+  const u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(u);
+}
+async function blobToB64(b){const d=await blobToDataURL(b);return d.slice(d.indexOf(',')+1);}
+function repoPath(p){return '/repos/'+encodeURIComponent(GH.owner)+'/'+encodeURIComponent(GH.repo)+'/contents/'+p;}
+
+async function ghGetFile(path){
+  const r=await ghApi(repoPath(path));
+  if(r.status===404)return{missing:true};
+  if(!r.ok)return{error:ghErr(r.status,r.body)};
+  return{sha:r.body.sha,content:r.body.content?b64ToStr(r.body.content):'',size:r.body.size};
+}
+async function ghPutFile(path,b64,sha,msg){
+  const p={message:msg||'Actualizar catálogo',content:b64};
+  if(sha)p.sha=sha;
+  const r=await ghApi(repoPath(path),'PUT',p);
+  if(r.status===409||(r.status===422&&/sha/i.test((r.body&&r.body.message)||'')))return{conflict:true};
+  if(!r.ok)return{error:ghErr(r.status,r.body),status:r.status};
+  return{sha:r.body&&r.body.content?r.body.content.sha:null};
+}
+async function ghDelFile(path){
+  const g=await ghGetFile(path);
+  if(g.missing||g.error)return;
+  await ghApi(repoPath(path),'DELETE',{message:'Quitar archivo',sha:g.sha});
+}
+async function ghListDir(dir){
+  const r=await ghApi(repoPath(dir));
+  if(r.status===404)return[];
+  if(!r.ok)return{error:ghErr(r.status,r.body)};
+  return Array.isArray(r.body)?r.body:[];
+}
+
+function metaOf(slug,d){
+  return{slug:slug,
+    nombre:(d&&d.biz&&d.biz.name)||slug,
+    productos:(d&&d.products?d.products.filter(p=>p.name).length:0),
+    visibles:(d&&d.products?d.products.filter(p=>p.name&&p.active!==false).length:0),
+    editor:(d&&d._editor)||'', editado:(d&&d._editado)||'', publicado:(d&&d._publicado)||''};
+}
+function localIdx(){try{return JSON.parse(localStorage.getItem(IDXKEY)||'[]');}catch(e){return[];}}
+function localIdxSet(a){try{localStorage.setItem(IDXKEY,JSON.stringify(a));}catch(e){}}
+
+const Store={
+  async list(){
+    if(teamMode()){
+      const l=await ghListDir('datos');
+      if(l.error)return{error:l.error};
+      const out=[];
+      for(const f of l){
+        if(!/\.json$/i.test(f.name))continue;
+        const slug=f.name.replace(/\.json$/i,'');
+        const g=await ghGetFile('datos/'+f.name);
+        let d=null;if(!g.error&&!g.missing){try{d=JSON.parse(g.content);}catch(e){}}
+        out.push(Object.assign(metaOf(slug,d),{sha:g.sha}));
+      }
+      return out;
+    }
+    return localIdx().map(slug=>{
+      let d=null;try{d=JSON.parse(localStorage.getItem(DKEY+slug)||'null');}catch(e){}
+      return metaOf(slug,d);
+    });
+  },
+  async get(slug){
+    if(teamMode()){
+      const g=await ghGetFile('datos/'+slug+'.json');
+      if(g.error)return{error:g.error};
+      if(g.missing)return{error:'Ese catálogo ya no existe en el repositorio.'};
+      try{return{data:JSON.parse(g.content),sha:g.sha};}
+      catch(e){return{error:'El archivo del catálogo está dañado.'};}
+    }
+    let d=null;try{d=JSON.parse(localStorage.getItem(DKEY+slug)||'null');}catch(e){}
+    return d?{data:d}:{error:'No se encontró el catálogo.'};
+  },
+  async put(slug,data,sha){
+    const txt=JSON.stringify(data);
+    if(teamMode())return await ghPutFile('datos/'+slug+'.json',toB64(txt),sha,
+      'Actualizar '+slug+(WHO?' ('+WHO+')':''));
+    try{localStorage.setItem(DKEY+slug,txt);
+      const i=localIdx();if(i.indexOf(slug)<0){i.push(slug);localIdxSet(i);}
+      return{sha:null};}
+    catch(e){return{error:e.name==='QuotaExceededError'
+      ?'Se llenó el espacio del teléfono. Descarga un respaldo y borra fotos viejas.'
+      :'No se pudo guardar.'};}
+  },
+  async del(slug){
+    if(teamMode()){await ghDelFile('datos/'+slug+'.json');return;}
+    try{localStorage.removeItem(DKEY+slug);localIdxSet(localIdx().filter(s=>s!==slug));}catch(e){}
+  }
+};
+
+/* ---------- panel de catálogos ---------- */
+function slugify(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'catalogo';}
+function since(iso){
+  if(!iso)return '';
+  const d=new Date(iso);if(isNaN(d))return '';
+  const m=Math.round((Date.now()-d.getTime())/60000);
+  if(m<1)return 'hace instantes';
+  if(m<60)return 'hace '+m+' min';
+  if(m<1440)return 'hace '+Math.round(m/60)+' h';
+  return d.toLocaleDateString('es-VE');
+}
+function catURL(slug){const b=ghURL();return b?b+slug+'/':'';}
+
+async function renderCats(){
+  const wrap=$('#cats');
+  $('#mode-pill').innerHTML=teamMode()
+    ? '<span class="pill ok">Compartido — todos los teléfonos ven lo mismo</span>'
+    : '<span class="pill warn">Solo este teléfono — configura Publicar para compartir</span>';
+  $('#who-card').hidden=!!WHO||!teamMode();
+  wrap.innerHTML='<div class="empty">Cargando…</div>';
+  const r=await Store.list();
+  if(r&&r.error){wrap.innerHTML='<div class="empty">'+r.error+'</div>';return;}
+  CATS=r;
+  if(!CATS.length){
+    wrap.innerHTML='<div class="empty">Todavía no hay catálogos.<br>Toca <b>Nuevo catálogo</b> para crear el primero.</div>';
+    return;}
+  wrap.innerHTML='';
+  CATS.forEach(c=>{
+    const el=document.createElement('div');el.className='prow';
+    const u=catURL(c.slug);
+    el.innerHTML=
+      '<div class="phead" style="cursor:default">'+
+        '<div class="pthumb">📕</div>'+
+        '<div class="pmeta"><div class="pname"></div><div class="psub"></div></div>'+
+        '<button class="btn sm primary" data-open>Abrir</button>'+
+      '</div>'+
+      '<div class="pbody" style="padding-top:12px">'+
+        '<div class="stat" style="margin-bottom:10px">'+
+          '<span><b>'+c.productos+'</b> productos</span>'+
+          '<span><b>'+c.visibles+'</b> visibles</span>'+
+          (c.publicado?'<span>publicado '+since(c.publicado)+'</span>':'<span class="pill warn">sin publicar</span>')+
+        '</div>'+
+        (u?'<div class="row"><input type="text" readonly value="'+u+'" style="flex:1;min-width:180px">'+
+            '<button class="btn sm" data-copy>📋</button>'+
+            '<a class="btn sm" href="'+u+'" target="_blank" rel="noopener">Ver</a>'+
+            '<a class="btn sm wa" data-wa target="_blank" rel="noopener">💬</a></div>':'')+
+        '<div class="row" style="margin-top:10px">'+
+          '<button class="btn sm" data-rename>Cambiar nombre</button>'+
+          '<span style="flex:1"></span>'+
+          '<button class="btn sm danger" data-del>Eliminar</button>'+
+        '</div>'+
+      '</div>';
+    el.querySelector('.pname').textContent=c.nombre;
+    el.querySelector('.psub').textContent=
+      (c.editor?'último cambio: '+c.editor:'sin cambios registrados')+(c.editado?' · '+since(c.editado):'');
+    const wa=el.querySelector('[data-wa]');
+    if(wa)wa.href='https://wa.me/?text='+encodeURIComponent(c.nombre+'\n'+u);
+    el.querySelector('[data-open]').addEventListener('click',()=>openCat(c.slug));
+    const cp=el.querySelector('[data-copy]');
+    if(cp)cp.addEventListener('click',()=>copy(u,'Enlace copiado'));
+    el.querySelector('[data-rename]').addEventListener('click',async ()=>{
+      const n=prompt('Nuevo nombre del catálogo:',c.nombre);
+      if(!n||n===c.nombre)return;
+      const g=await Store.get(c.slug);
+      if(g.error)return toast(g.error);
+      g.data.biz=g.data.biz||{};g.data.biz.name=n;
+      g.data._editor=WHO;g.data._editado=new Date().toISOString();
+      const p=await Store.put(c.slug,g.data,g.sha);
+      if(p.error)return toast(p.error);
+      if(CURSLUG===c.slug){S.biz.name=n;refreshFields();}
+      renderCats();toast('Nombre cambiado');
+    });
+    el.querySelector('[data-del]').addEventListener('click',async ()=>{
+      if(!confirm('Se elimina el catálogo "'+c.nombre+'" y sus productos.\n\n'+
+        'La página ya publicada NO se borra: sigue en línea con lo último que se publicó.\n\n¿Continuar?'))return;
+      await Store.del(c.slug);
+      if(CURSLUG===c.slug){CURSLUG=null;CURSHA=null;}
+      renderCats();toast('Catálogo eliminado');
+    });
+    wrap.appendChild(el);
+  });
+}
+
+async function openCat(slug){
+  toast('Abriendo…');
+  const r=await Store.get(slug);
+  if(r.error)return toast(r.error);
+  let draft=null;
+  try{draft=JSON.parse(localStorage.getItem(DRAFT+slug)||'null');}catch(e){}
+  let data=r.data;
+  if(draft&&draft._editado&&(!r.data._editado||draft._editado>r.data._editado)){
+    if(confirm('Este teléfono tiene cambios sin subir de '+since(draft._editado)+
+      '.\n\nAceptar = usar esos cambios.\nCancelar = descartarlos y abrir lo que está en la nube.'))data=draft;
+    else try{localStorage.removeItem(DRAFT+slug);}catch(e){}
+  }
+  S=Object.assign(structuredClone(DEFAULTS),data);
+  S.opts=Object.assign(structuredClone(DEFAULTS.opts),data.opts||{});
+  CURSLUG=slug;CURSHA=r.sha||null;
+  openRows.clear();
+  refreshFields();renderProducts();renderRates();renderLinks();renderMarginExplain();paintLogo();checkPhone();
+  gotoTab('productos');
+  toast('Abierto: '+((S.biz&&S.biz.name)||slug));
+}
+
+async function newCat(){
+  const n=prompt('Nombre del catálogo nuevo:\n(por ejemplo: Ropa, Zapatos, Accesorios)');
+  if(!n)return;
+  let slug=slugify(n), base=slug, i=2;
+  const taken=CATS.map(c=>c.slug);
+  while(taken.indexOf(slug)>=0)slug=base+'-'+(i++);
+  const d=structuredClone(DEFAULTS);
+  d.biz.name=n;d._editor=WHO;d._editado=new Date().toISOString();
+  if(CATS.length){
+    const src=await Store.get(CATS[0].slug);
+    if(!src.error&&src.data){
+      d.wa=structuredClone(src.data.wa||DEFAULTS.wa);
+      d.cur=structuredClone(src.data.cur||DEFAULTS.cur);
+      d.rates=structuredClone(src.data.rates||[]);
+      d.margin=structuredClone(src.data.margin||DEFAULTS.margin);
+      d.links=structuredClone(src.data.links||[]);
+      d.rateNote=src.data.rateNote||'';
+      toast('Se copiaron tasas, WhatsApp y enlaces del primer catálogo');
+    }
+  }
+  const p=await Store.put(slug,d,null);
+  if(p.error)return toast(p.error);
+  await renderCats();
+  openCat(slug);
+}
+
+function gotoTab(name){
+  const t=$('.tab[data-tab="'+name+'"]');if(t)t.click();
+}
+function markState(txt,cls){
+  const el=$('#savestate');if(!el)return;
+  el.textContent=txt;el.className='pill'+(cls?' '+cls:'');
+}
+function showConflict(){
+  const box=document.createElement('div');
+  box.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:18px';
+  box.innerHTML='<div style="background:var(--surface);border-radius:14px;padding:20px;max-width:420px">'+
+    '<h2 style="margin:0 0 8px;font-size:16px">Otra persona editó este catálogo</h2>'+
+    '<p style="font-size:13.5px;color:var(--muted);margin:0 0 16px">'+
+    'Mientras trabajabas, alguien más guardó cambios desde otro teléfono. '+
+    'No puedo juntar los dos automáticamente, así que elige cuál se queda.</p>'+
+    '<div style="display:grid;gap:8px">'+
+    '<button class="btn" data-mine>Que se queden MIS cambios (se pierden los del otro)</button>'+
+    '<button class="btn primary" data-theirs>Traer lo del otro (pierdo lo que hice ahora)</button>'+
+    '</div></div>';
+  document.body.appendChild(box);
+  box.querySelector('[data-mine]').addEventListener('click',async ()=>{
+    const g=await Store.get(CURSLUG);
+    CURSHA=g.sha||null;box.remove();cloudSave();
+  });
+  box.querySelector('[data-theirs]').addEventListener('click',()=>{
+    try{localStorage.removeItem(DRAFT+CURSLUG);}catch(e){}
+    box.remove();openCat(CURSLUG);
+  });
+}
+
+/* ---------- respaldo / restauración ---------- */
+$('#btn-backup').addEventListener('click',async ()=>{
+  const media=await DB.all();
+  const out={state:S,media:[]};
+  for(const m of media)out.media.push({id:m.id,type:m.type,data:await blobToDataURL(m.blob)});
+  download('respaldo-catalogo.json',JSON.stringify(out),'application/json');
+  toast('Respaldo descargado');
+});
+$('#btn-restore').addEventListener('click',()=>{$('#jsonpick').value='';$('#jsonpick').click();});
+$('#jsonpick').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(!confirm('Esto reemplaza todo el catálogo actual. ¿Continuar?'))return;
+  try{
+    const j=JSON.parse(await f.text());
+    if(!j.state)throw new Error('formato');
+    for(const m of (j.media||[])){
+      const blob=await (await fetch(m.data)).blob();
+      await DB.put({id:m.id,blob,type:m.type});
+    }
+    S=Object.assign(structuredClone(DEFAULTS),j.state);
+    save();urlCache.clear();boot();toast('Catálogo restaurado');
+  }catch(err){toast('Archivo inválido');}
+});
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+$('#btn-dup-demo').addEventListener('click',async ()=>{
+  if(S.products.length&&!confirm('Se agregarán 3 productos de ejemplo. ¿Continuar?'))return;
+  const nuevos=loadDemo();save();renderProducts();
+  toast('Buscando fotos de muestra…');
+  await addDemoPhotos(nuevos);
+  save();renderProducts();renderRates();renderLinks();toast('Ejemplo listo');
+});
+
+/* Fotos de prueba: Lorem Picsum sirve imágenes bajo licencia Unsplash
+   (uso libre, sin atribución obligatoria). Se descargan y se guardan
+   dentro del catálogo, así que el archivo exportado sigue funcionando
+   sin internet. Si no hay conexión, se dibuja un marcador local. */
+async function fetchDemoPhoto(seed){
+  try{
+    const c=new AbortController(); const t=setTimeout(()=>c.abort(),6000);
+    const r=await fetch('https://picsum.photos/seed/'+seed+'/900/1125',{signal:c.signal});
+    clearTimeout(t);
+    if(!r.ok)return null;
+    const b=await r.blob();
+    return b.type.indexOf('image/')===0?b:null;
+  }catch(e){return null;}
+}
+function localPlaceholder(label,hue){
+  const c=document.createElement('canvas');c.width=900;c.height=1125;
+  const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,900,1125);
+  g.addColorStop(0,'hsl('+hue+',42%,74%)');g.addColorStop(1,'hsl('+((hue+38)%360)+',46%,50%)');
+  x.fillStyle=g;x.fillRect(0,0,900,1125);
+  x.fillStyle='rgba(255,255,255,.94)';x.textAlign='center';x.textBaseline='middle';
+  x.font='600 58px -apple-system,Segoe UI,Roboto,sans-serif';
+  x.fillText(label,450,545);
+  x.font='400 30px -apple-system,Segoe UI,Roboto,sans-serif';x.fillStyle='rgba(255,255,255,.7)';
+  x.fillText('foto de muestra',450,610);
+  return new Promise(r=>c.toBlob(r,'image/webp',0.85));
+}
+async function addDemoPhotos(list){
+  const hues=[205,28,150,320,95];
+  for(let i=0;i<list.length;i++){
+    const p=list[i];
+    if(p.media.length)continue;
+    for(let k=0;k<2;k++){
+      let blob=await fetchDemoPhoto(p.name.toLowerCase().replace(/\s+/g,'-')+'-'+k);
+      if(!blob)blob=await localPlaceholder(p.name,(hues[i%hues.length]+k*24)%360);
+      if(!blob)continue;
+      const {blob:out,w,h}=await compressImage(blob);
+      const id=uid();
+      await DB.put({id,blob:out,type:out.type});
+      p.media.push({id,type:'image',src:'db',w,h,size:out.size});
+    }
+  }
+}
+function loadDemo(){
+  const creados=[];
+  if(!S.wa.phone)S.wa.phone='';
+  if(!S.rates.length)S.rates.push({id:uid(),code:'VES',sym:'Bs.',rate:'',dec:2});
+  if(!S.links.length)S.links=[
+    {id:uid(),icon:'📷',label:'Instagram',url:'https://instagram.com/'},
+    {id:uid(),icon:'🎵',label:'TikTok',url:'https://tiktok.com/'},
+    {id:uid(),icon:'🏬',label:'Marketplace',url:'https://facebook.com/marketplace/'}];
+  [['Camisa básica','Ropa','Corte recto, no se deforma al lavar',['Tallas S a XL','Algodón 100%','5 colores'],'8','',30],
+   ['Gorra ajustable','Accesorios','Talla única con broche trasero',['Bordado en frente','Visera curva'],'4.5','',35],
+   ['Combo 3 medias','Accesorios','Pack de tres pares',['Algodón peinado','Tallas 36 a 42'],'','9',0]
+  ].forEach(d=>{
+    const p=newProduct();
+    p.name=d[0];p.cat=d[1];p.desc=d[2];p.highlights=d[3];
+    if(d[5]){p.mode='direct';p.price=d[5];}else{p.mode='cost';p.cost=d[4];p.marginPct=d[6];}
+    p.stockMode='in';
+    S.products.push(p);creados.push(p);
+  });
+  return creados;
+}
+
+function boot(){
+  /* datalists */
+  if(!$('#linkpresets')){
+    const dl=document.createElement('datalist');dl.id='linkpresets';
+    dl.innerHTML=LINK_PRESETS.map(p=>'<option value="'+p.label+'">').join('');
+    document.body.appendChild(dl);
+    const dc=document.createElement('datalist');dc.id='catlist';document.body.appendChild(dc);
+  }
+  $('#catlist').innerHTML=[...new Set(S.products.map(p=>p.cat).filter(Boolean))].map(c=>'<option value="'+c+'">').join('');
+
+  bindField('#baseCode',()=>S.cur.code,v=>{S.cur.code=v.toUpperCase();renderRates();});
+  bindField('#baseSym',()=>S.cur.sym,v=>S.cur.sym=v);
+  bindField('#baseDec',()=>S.cur.dec,v=>S.cur.dec=v);
+  bindField('#marginMode',()=>S.margin.mode,v=>S.margin.mode=v);
+  bindField('#marginPct',()=>S.margin.pct,v=>S.margin.pct=v);
+  bindField('#roundMode',()=>S.round.mode,v=>S.round.mode=v);
+  bindField('#roundStep',()=>S.round.step,v=>S.round.step=v);
+  bindField('#rateNote',()=>S.rateNote,v=>S.rateNote=v);
+  bindField('#exportQ',()=>S.exportQ,v=>{S.exportQ=v;
+    $('#q-note').textContent=(QUALITY[v]||QUALITY.equilibrada).label;showExportInfo(null);});
+  $('#btn-recalc').addEventListener('click',recalc);
+  bindField('#showAllRates',()=>S.showAllRates,v=>S.showAllRates=v);
+  bindField('#bizName',()=>S.biz.name,v=>S.biz.name=v);
+  bindField('#bizTag',()=>S.biz.tagline,v=>S.biz.tagline=v);
+  bindField('#brandColor',()=>S.biz.color||'#0b7a4b',v=>S.biz.color=v);
+  bindField('#heroMsg',()=>S.biz.heroMsg,v=>S.biz.heroMsg=v);
+  bindField('#validUntil',()=>S.biz.validUntil,v=>S.biz.validUntil=v);
+  bindField('#waPhone',()=>S.wa.phone,v=>{S.wa.phone=v;checkPhone();});
+  bindField('#waPre',()=>S.wa.pre,v=>S.wa.pre=v);
+  Object.keys(S.opts).forEach(k=>bindField('#opt'+k[0].toUpperCase()+k.slice(1),()=>S.opts[k],v=>S.opts[k]=v));
+
+  /* publicación */
+  $('#gh-owner').value=GH.owner||'';
+  $('#gh-repo').value =GH.repo ||'';
+  $('#gh-token').value=GH.token||'';
+  $('#gh-exp').value  =GH.exp  ||'';
+  $('#btn-gh-test').addEventListener('click',ghTest);
+  $('#btn-publish').addEventListener('click',ghPublish);
+  $('#btn-copy-url').addEventListener('click',()=>copy($('#pub-url').value,'Enlace copiado'));
+  $('#btn-pub-settings').addEventListener('click',()=>{GH.showWizard=!GH.showWizard;ghSave();paintPublish(true);});
+  $('#btn-gh-forget').addEventListener('click',()=>{
+    if(!confirm('Se borra la llave de publicación de este teléfono. El catálogo ya publicado sigue en línea, pero no se podrá publicar de nuevo hasta volver a configurarlo. ¿Continuar?'))return;
+    GH={};try{localStorage.removeItem(GHKEY);}catch(e){}
+    ['#gh-owner','#gh-repo','#gh-token','#gh-exp'].forEach(s=>$(s).value='');
+    $('#gh-test-result').textContent='Sin probar todavía.';
+    paintPublish();toast('Llave borrada');
+  });
+  ['#gh-owner','#gh-repo'].forEach(s=>$(s).addEventListener('input',()=>{
+    const o=($('#gh-owner').value||'').trim(), r=($('#gh-repo').value||'').trim();
+    $('#gh-pages-link').href=(o&&r)?('https://github.com/'+o+'/'+r+'/settings/pages'):'#';
+  }));
+  paintPublish();
+
+  /* panel de catálogos */
+  $('#btn-new-cat').addEventListener('click',newCat);
+  $('#btn-reload-cats').addEventListener('click',()=>{renderCats();toast('Actualizado');});
+  $('#who-name').value=WHO;
+  $('#btn-who').addEventListener('click',()=>{
+    WHO=($('#who-name').value||'').trim();
+    try{localStorage.setItem(WHOKEY,WHO);}catch(e){}
+    $('#who-card').hidden=!!WHO;toast(WHO?('Hola, '+WHO):'');
+  });
+
+  renderProducts();renderRates();renderLinks();renderMarginExplain();paintLogo();checkPhone();
+  markState('—');
+}
+
+/* Un catálogo guardado con la versión anterior de la herramienta se
+   convierte en el primer catálogo de la lista, sin perder nada. */
+function migrar(){
+  try{
+    const viejo=localStorage.getItem('catalogo-state-v1');
+    if(!viejo)return;
+    if(localIdx().length){localStorage.removeItem('catalogo-state-v1');return;}
+    const d=JSON.parse(viejo);
+    const slug=slugify((d.biz&&d.biz.name)||'principal');
+    localStorage.setItem(DKEY+slug,JSON.stringify(d));
+    localIdxSet([slug]);
+    localStorage.removeItem('catalogo-state-v1');
+  }catch(e){}
+}
+
+async function arrancar(){
+  boot();
+  migrar();
+  await probeStorage();
+  await renderCats();
+  /* si hay uno solo, se abre directo: para la empleada de un solo catálogo
+     el panel no debería ser un paso extra todos los días */
+  if(CATS.length===1)openCat(CATS[0].slug);
+}
+arrancar();
+window.addEventListener('beforeunload',e=>{
+  if(!CURSLUG)return;
+  try{localStorage.setItem(DRAFT+CURSLUG,JSON.stringify(S));}catch(err){}
+  if(cloudT){e.preventDefault();e.returnValue='';}   /* aún no se subió a la nube */
+});
+/* Al volver a la pestaña se sube lo pendiente y se refresca el panel:
+   otro teléfono pudo haber cambiado algo mientras tanto. */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')return;
+  if(cloudT){clearTimeout(cloudT);cloudSave();}
+  if(!$('#p-panel').hidden)renderCats();
+});
+})();
+</script>
+<script type="text/plain" id="tpl">
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Catálogo</title>
+<style>
+:root{--b:#0b7a4b;--bg:#fff;--sf:#fff;--s2:#f3f5f7;--bd:#e4e7ec;--tx:#14161a;--mu:#616a75;--wa:#25D366;--rd:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1114;--sf:#171a1e;--s2:#1e2228;--bd:#2a2f37;--tx:#e9ebee;--mu:#98a1ac}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+     background:var(--bg);color:var(--tx);-webkit-text-size-adjust:100%;overflow-wrap:break-word;
+     padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+img,video{max-width:100%;display:block}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:var(--b)}
+.wrap{max-width:1000px;margin:0 auto;padding:0 12px}
+
+header{background:var(--sf);border-bottom:1px solid var(--bd);padding:16px 0 12px;text-align:center}
+.logo{width:66px;height:66px;border-radius:16px;object-fit:cover;margin:0 auto 8px;border:1px solid var(--bd)}
+h1{font-size:20px;margin:0;font-weight:800;letter-spacing:-.02em}
+.tag{color:var(--mu);font-size:13px;margin-top:2px}
+.hero{background:var(--b);color:#fff;font-size:13px;font-weight:650;padding:7px 12px;border-radius:999px;
+      display:inline-block;margin-top:9px}
+.note{color:var(--mu);font-size:11.5px;margin-top:7px;padding:0 12px}
+
+.bar{position:sticky;top:0;z-index:30;background:var(--sf);border-bottom:1px solid var(--bd);padding:9px 0}
+.bar .wrap{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+#q{flex:1;min-width:150px;padding:9px 12px;border:1px solid var(--bd);border-radius:999px;background:var(--s2);
+   min-height:40px;font-size:14px;color:var(--tx)}
+.cur{display:flex;gap:4px;background:var(--s2);border-radius:999px;padding:3px}
+.cur button{border:0;background:transparent;padding:6px 11px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--mu)}
+.cur button[aria-pressed=true]{background:var(--b);color:#fff}
+.cats{display:flex;gap:6px;overflow-x:auto;padding:8px 12px 2px;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cats button{border:1px solid var(--bd);background:var(--sf);border-radius:999px;padding:6px 13px;
+             font-size:12.5px;font-weight:650;white-space:nowrap;color:var(--mu);min-height:34px}
+.cats button[aria-pressed=true]{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+
+/* La imagen de producto es el elemento LCP en ~77% de las páginas de producto:
+   es lo primero que el comprador juzga, así que manda en la jerarquía visual. */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;padding:12px 0 20px}
+body[data-size=xl] .grid{grid-template-columns:1fr;gap:16px}
+body[data-size=sm] .grid{grid-template-columns:repeat(3,1fr);gap:9px}
+@media(min-width:600px){
+  .grid{grid-template-columns:repeat(3,1fr)}
+  body[data-size=xl] .grid{grid-template-columns:repeat(2,1fr)}
+  body[data-size=sm] .grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:860px){
+  .grid{grid-template-columns:repeat(4,1fr)}
+  body[data-size=xl] .grid{grid-template-columns:repeat(3,1fr)}
+  body[data-size=sm] .grid{grid-template-columns:repeat(5,1fr)}}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rd);overflow:hidden;
+      display:flex;flex-direction:column;text-align:left;padding:0;border-width:1px}
+/* 4:5 vertical: da ~25% más superficie de imagen que el cuadrado
+   en el mismo ancho de columna, sin empujar el precio fuera de pantalla. */
+.ph{position:relative;width:100%;aspect-ratio:4/5;background:var(--s2);overflow:hidden}
+body[data-size=sm] .ph{aspect-ratio:1/1}
+body[data-size=xl] .ph{aspect-ratio:1/1}
+.ph img{width:100%;height:100%;object-fit:cover}
+body[data-fit=contain] .ph img{object-fit:contain}
+body[data-size=xl] .cn{font-size:16px}
+body[data-size=xl] .cd{font-size:13px;-webkit-line-clamp:3}
+body[data-size=xl] .cp{font-size:19px}
+body[data-size=xl] .ci{padding:12px 14px 14px}
+body[data-size=xl] .pickbtn{margin:0 14px 14px;font-size:13.5px;min-height:42px}
+.ph .ic{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;color:var(--mu)}
+.badge{position:absolute;top:7px;left:7px;background:#d63b2f;color:#fff;font-size:10.5px;font-weight:800;
+       padding:3px 7px;border-radius:6px;letter-spacing:.02em}
+.badge.g{background:var(--b)}
+.vidmark{position:absolute;bottom:7px;right:7px;background:rgba(0,0,0,.62);color:#fff;font-size:10px;
+         font-weight:700;padding:3px 7px;border-radius:999px}
+.ci{padding:9px 10px 11px;flex:1;display:flex;flex-direction:column;gap:2px}
+.cn{font-size:13.5px;font-weight:650;line-height:1.3}
+.cd{font-size:11.5px;color:var(--mu);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cp{margin-top:auto;padding-top:6px;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.cp .old{font-size:11.5px;font-weight:500;color:var(--mu);text-decoration:line-through;margin-right:5px}
+.cp .alt{display:block;font-size:11.5px;font-weight:600;color:var(--mu);letter-spacing:0}
+.out{opacity:.5}
+.pickbtn{border:1px solid var(--bd);background:var(--s2);border-radius:9px;padding:6px;margin:0 10px 10px;
+         font-size:12px;font-weight:700;color:var(--mu);min-height:34px}
+.pickbtn[aria-pressed=true]{background:var(--b);border-color:var(--b);color:#fff}
+
+.sheet{position:fixed;inset:0;z-index:60;display:none}
+.sheet.on{display:block}
+.sheet .bk{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.sheet .pn{position:absolute;left:0;right:0;bottom:0;max-height:94vh;overflow-y:auto;background:var(--bg);
+           border-radius:18px 18px 0 0;-webkit-overflow-scrolling:touch}
+@media(min-width:700px){.sheet .pn{left:50%;transform:translateX(-50%);width:620px;border-radius:18px;
+  bottom:auto;top:50%;margin-top:-45vh;max-height:90vh}}
+.hd{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:10px;padding:11px 14px;
+    border-bottom:1px solid var(--bd);z-index:2}
+.hd b{flex:1;font-size:15px}
+.hd .cl{border:0;background:var(--s2);width:32px;height:32px;border-radius:50%;font-size:15px}
+.gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;background:var(--s2)}
+.gal::-webkit-scrollbar{display:none}
+.gal>*{flex:none;width:100%;scroll-snap-align:center;aspect-ratio:4/5;object-fit:contain;background:var(--s2)}
+@media(min-width:700px){.gal>*{aspect-ratio:1/1}}
+.dots{display:flex;gap:5px;justify-content:center;padding:9px 0 2px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--bd)}
+.dots i.on{background:var(--b);width:18px;border-radius:3px}
+.dt{padding:12px 16px 18px}
+.dt h2{font-size:17px;margin:0 0 3px;font-weight:750}
+.dt .sub{color:var(--mu);font-size:13px;margin-bottom:10px}
+.hl{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:5px}
+.hl li{font-size:13.5px;padding-left:19px;position:relative;color:var(--tx)}
+.hl li:before{content:"✓";position:absolute;left:0;color:var(--b);font-weight:800}
+.pbox{background:var(--s2);border-radius:12px;padding:11px 13px;margin-bottom:12px}
+.pbox .m{font-size:23px;font-weight:850;letter-spacing:-.02em}
+.pbox .m .old{font-size:14px;font-weight:500;color:var(--mu);text-decoration:line-through;margin-right:7px}
+.pbox .r{font-size:12.5px;color:var(--mu);margin-top:2px}
+.acts{display:grid;gap:8px}
+.act{border:1px solid var(--bd);background:var(--sf);border-radius:11px;padding:11px;font-size:14px;
+     font-weight:700;text-align:center;text-decoration:none;color:var(--tx);min-height:46px;
+     display:flex;align-items:center;justify-content:center;gap:7px}
+.act.wa{background:var(--wa);border-color:var(--wa);color:#062d16}
+.act.b{background:var(--b);border-color:var(--b);color:#fff}
+
+.fbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--sf);border-top:1px solid var(--bd);
+      padding:9px 12px calc(9px + env(safe-area-inset-bottom));display:flex;gap:9px;align-items:center}
+.fbar .txt{flex:1;min-width:0;font-size:12.5px;color:var(--mu);line-height:1.3}
+.fbar .txt b{color:var(--tx);font-size:13.5px;display:block}
+.fbar a,.fbar button{border:0;border-radius:11px;padding:11px 15px;font-size:14px;font-weight:750;
+      text-decoration:none;background:var(--wa);color:#062d16;min-height:46px;display:flex;align-items:center;white-space:nowrap}
+.fbar .clr{background:var(--s2);color:var(--mu);padding:11px}
+footer{border-top:1px solid var(--bd);padding:18px 0 26px;text-align:center;background:var(--sf)}
+.lk{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 12px}
+.lk a{border:1px solid var(--bd);background:var(--bg);border-radius:11px;padding:10px 15px;font-size:13.5px;
+      font-weight:650;text-decoration:none;color:var(--tx);min-height:44px;display:flex;align-items:center;gap:7px}
+.ft{color:var(--mu);font-size:11.5px;margin-top:14px}
+.none{text-align:center;color:var(--mu);padding:44px 16px}
+@media print{
+  .bar,.fbar,.pickbtn,.cats,footer .lk{display:none!important}
+  body{padding-bottom:0}.grid{grid-template-columns:repeat(3,1fr)}
+  .card{break-inside:avoid;border-color:#ccc}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <img class="logo" id="lg" alt="" hidden>
+    <h1 id="nm"></h1>
+    <div class="tag" id="tg"></div>
+    <div id="hr"></div>
+    <div class="note" id="nt"></div>
+  </div>
+</header>
+<div class="bar" id="bar"><div class="wrap">
+  <input id="q" type="search" placeholder="Buscar producto…" autocomplete="off">
+  <div class="cur" id="cu"></div>
+</div></div>
+<div class="cats wrap" id="ct"></div>
+<div class="wrap"><div class="grid" id="gr"></div><div class="none" id="nn" hidden>No hay productos que coincidan.</div></div>
+<footer>
+  <div class="lk" id="lk"></div>
+  <div class="ft" id="ft"></div>
+</footer>
+<div class="sheet" id="sh"><div class="bk"></div><div class="pn" id="pn"></div></div>
+<div class="fbar" id="fb" hidden></div>
+<script>
+(function(){
+var D="__DATA__";
+var $=function(s){return document.querySelector(s)},
+    ce=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+      return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];})};
+var ci=0, cat="", pick={}, items=D.items||[], cur=D.cur||[{code:"USD",sym:"$",dec:2,rate:1}];
+
+function fmt(v,c){if(v==null||!isFinite(v))return"—";
+  return (c.sym?c.sym+" ":"")+v.toLocaleString("es-VE",{minimumFractionDigits:c.dec,maximumFractionDigits:c.dec})+(c.sym?"":" "+c.code);}
+function pr(it,i){var p=it.prices[i]||it.prices[0];return p;}
+
+/* ---------- cabecera ---------- */
+document.body.dataset.size=D.opts.size||"lg";
+document.body.dataset.fit=D.opts.fit||"cover";
+if(D.biz.color){document.documentElement.style.setProperty("--b",D.biz.color);}
+document.title=D.biz.name||"Catálogo";
+$("#nm").textContent=D.biz.name||"";
+if(D.biz.tagline){$("#tg").textContent=D.biz.tagline;}
+if(D.biz.logo){var L=$("#lg");L.src=D.biz.logo;L.hidden=false;}
+if(D.biz.heroMsg){$("#hr").innerHTML='<span class="hero">'+ce(D.biz.heroMsg)+"</span>";}
+var notes=[];
+if(D.rateNote)notes.push(D.rateNote);
+if(D.biz.validUntil)notes.push("Precios válidos hasta "+D.biz.validUntil);
+$("#nt").textContent=notes.join(" · ");
+
+/* ---------- selector de moneda ---------- */
+if(cur.length>1&&!D.showAll){
+  $("#cu").innerHTML=cur.map(function(c,i){
+    return '<button type="button" data-i="'+i+'" aria-pressed="'+(i===0)+'">'+ce(c.code)+"</button>";}).join("");
+  $("#cu").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    ci=+b.dataset.i;
+    [].forEach.call($("#cu").children,function(x,i){x.setAttribute("aria-pressed",String(i===ci));});
+    draw();if($("#sh").classList.contains("on"))open(openId);
+  });
+}else{$("#cu").remove();}
+if(!D.opts.search)$("#q").remove();
+if(!$("#bar").querySelector("input,button"))$("#bar").remove();
+
+/* ---------- categorías ---------- */
+var cats=[];items.forEach(function(it){if(it.cat&&cats.indexOf(it.cat)<0)cats.push(it.cat);});
+if(D.opts.cats&&cats.length>1){
+  $("#ct").innerHTML='<button type="button" data-c="" aria-pressed="true">Todo</button>'+
+    cats.map(function(c){return '<button type="button" data-c="'+ce(c)+'" aria-pressed="false">'+ce(c)+"</button>";}).join("");
+  $("#ct").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    cat=b.dataset.c;
+    [].forEach.call($("#ct").children,function(x){x.setAttribute("aria-pressed",String(x.dataset.c===cat));});
+    draw();});
+}else{$("#ct").remove();}
+
+/* ---------- enlaces ---------- */
+if((D.links||[]).length){
+  $("#lk").innerHTML=D.links.map(function(l){
+    return '<a href="'+ce(l.url)+'" target="_blank" rel="noopener">'+(l.icon?ce(l.icon)+" ":"")+ce(l.label)+"</a>";}).join("");
+}
+$("#ft").textContent=(D.biz.name||"")+" · "+items.length+" productos";
+
+/* ---------- mensaje de WhatsApp ---------- */
+function wa(txt){return D.wa.phone?"https://wa.me/"+D.wa.phone+"?text="+encodeURIComponent(txt):"";}
+function lineOf(it){
+  var c=cur[ci],p=pr(it,ci);
+  return "• "+it.name+(it.sku?" ["+it.sku+"]":"")+" — *"+fmt(p.final,c)+"*";
+}
+
+/* ---------- tarjetas ---------- */
+function draw(){
+  var q=($("#q")?$("#q").value:"").trim().toLowerCase();
+  var c=cur[ci];
+  var list=items.filter(function(it){
+    if(cat&&it.cat!==cat)return false;
+    if(!q)return true;
+    return (it.name+" "+it.desc+" "+it.cat+" "+it.sku+" "+(it.hl||[]).join(" ")).toLowerCase().indexOf(q)>=0;});
+  $("#nn").hidden=list.length>0;
+  $("#gr").innerHTML=list.map(function(it,n){
+    var p=pr(it,ci), img=(it.media||[]).filter(function(m){return m.t==="image"})[0],
+        vid=(it.media||[]).some(function(m){return m.t==="video"}),
+        so=it.stock==="out"||(it.stock==="count"&&it.count<=0);
+    var alt="";
+    if(D.showAll&&cur.length>1){
+      alt=cur.map(function(cc,k){return k===ci?null:fmt(it.prices[k].final,cc);})
+             .filter(Boolean).join(" · ");}
+    return '<div class="card'+(so?" out":"")+'">'+
+      '<button type="button" class="ph" data-id="'+it.id+'" style="border:0;padding:0;width:100%">'+
+        (img?'<img src="'+ce(img.u)+'" alt="'+ce(it.name)+'"'+
+             (n===0?' fetchpriority="high"':' loading="lazy" decoding="async"')+
+             (img.w?' width="'+img.w+'" height="'+img.h+'"':"")+">"
+            :'<span class="ic">🖼️</span>')+
+        (so?'<span class="badge">AGOTADO</span>':(it.disc>0?'<span class="badge">-'+it.disc+"%</span>":""))+
+        (vid?'<span class="vidmark">▶ video</span>':"")+
+      "</button>"+
+      '<button type="button" class="ci" data-id="'+it.id+'" style="border:0;background:none;width:100%">'+
+        '<div class="cn">'+ce(it.name)+"</div>"+
+        (it.desc?'<div class="cd">'+ce(it.desc)+"</div>":"")+
+        '<div class="cp">'+(it.disc>0?'<span class="old">'+fmt(p.list,c)+"</span>":"")+fmt(p.final,c)+
+          (alt?'<span class="alt">'+alt+"</span>":"")+"</div>"+
+      "</button>"+
+      (D.opts.cart&&!so?'<button type="button" class="pickbtn" data-pick="'+it.id+'" aria-pressed="'+
+        (!!pick[it.id])+'">'+(pick[it.id]?"✓ En el pedido":"+ Agregar"):"")+
+      (D.opts.cart&&!so?"</button>":"")+
+    "</div>";}).join("");
+}
+$("#gr").addEventListener("click",function(e){
+  var pk=e.target.closest("[data-pick]");
+  if(pk){var id=pk.dataset.pick;
+    if(pick[id])delete pick[id];else pick[id]=1;
+    /* solo se actualiza este botón: redibujar la grilla completa haría
+       recargar todas las imágenes y perdería la posición de scroll */
+    pk.setAttribute("aria-pressed",String(!!pick[id]));
+    pk.textContent=pick[id]?"✓ En el pedido":"+ Agregar";
+    bar();return;}
+  var b=e.target.closest("[data-id]");if(b)open(b.dataset.id);
+});
+if($("#q"))$("#q").addEventListener("input",draw);
+
+/* ---------- ficha ---------- */
+var openId=null;
+function open(id){
+  var it=items.filter(function(x){return x.id===id})[0];if(!it)return;
+  openId=id;
+  var c=cur[ci],p=pr(it,ci),m=it.media||[],
+      so=it.stock==="out"||(it.stock==="count"&&it.count<=0);
+  var gal=m.map(function(x,i){
+    return x.t==="video"
+      ?'<video src="'+ce(x.u)+'" controls preload="metadata" playsinline></video>'
+      :'<img src="'+ce(x.u)+'" alt="'+ce(it.name)+'"'+(i?' loading="lazy"':"")+
+        (x.w?' width="'+x.w+'" height="'+x.h+'"':"")+">";}).join("");
+  var stockTxt = it.stock==="in"?"Disponible"
+    : it.stock==="count"?(it.count>0?it.count+" disponibles":"Agotado")
+    : it.stock==="out"?"Agotado":"";
+  var msg=(D.wa.pre||"Hola! Me interesa este producto:")+"\n\n"+lineOf(it)+
+    (it.sku?"":"")+"\n\n"+(D.biz.name||"");
+  var alts=cur.map(function(cc,k){return k===ci?null:cc.code+": "+fmt(it.prices[k].final,cc);}).filter(Boolean);
+
+  $("#pn").innerHTML=
+    '<div class="hd"><b>'+ce(it.cat||D.biz.name||"Producto")+'</b><button class="cl" type="button" data-x>✕</button></div>'+
+    (m.length?'<div class="gal" id="gg">'+gal+'</div>'+
+      (m.length>1?'<div class="dots" id="dd">'+m.map(function(_,i){return '<i'+(i?"":' class="on"')+"></i>"}).join("")+"</div>":""):"")+
+    '<div class="dt">'+
+      "<h2>"+ce(it.name)+"</h2>"+
+      (it.desc?'<div class="sub">'+ce(it.desc)+"</div>":"")+
+      ((it.hl||[]).length?'<ul class="hl">'+it.hl.map(function(h){return "<li>"+ce(h)+"</li>"}).join("")+"</ul>":"")+
+      '<div class="pbox"><div class="m">'+(it.disc>0?'<span class="old">'+fmt(p.list,c)+"</span>":"")+fmt(p.final,c)+"</div>"+
+        (alts.length?'<div class="r">'+ce(alts.join("  ·  "))+"</div>":"")+
+        (D.opts.stock&&stockTxt?'<div class="r">'+ce(stockTxt)+"</div>":"")+
+        (it.sku?'<div class="r">Cód. '+ce(it.sku)+"</div>":"")+"</div>"+
+      '<div class="acts">'+
+        (D.wa.phone&&!so?'<a class="act wa" href="'+ce(wa(msg))+'" target="_blank" rel="noopener">💬 Pedir por WhatsApp</a>':"")+
+        (so?'<div class="act" style="opacity:.6">Agotado por ahora</div>':"")+
+        (it.link?'<a class="act b" href="'+ce(it.link)+'" target="_blank" rel="noopener">🏬 Ver publicación</a>':"")+
+        (D.opts.share?'<button class="act" type="button" data-share>🔗 Compartir</button>':"")+
+      "</div>"+
+    "</div>";
+  $("#sh").classList.add("on");
+  document.body.style.overflow="hidden";
+  var g=$("#gg");
+  if(g&&$("#dd"))g.addEventListener("scroll",function(){
+    var i=Math.round(g.scrollLeft/g.clientWidth);
+    [].forEach.call($("#dd").children,function(d,k){d.className=k===i?"on":"";});},{passive:true});
+  var sb=$("#pn").querySelector("[data-share]");
+  if(sb)sb.addEventListener("click",function(){
+    var t=it.name+" — "+fmt(p.final,c);
+    if(navigator.share)navigator.share({title:it.name,text:t,url:location.href}).catch(function(){});
+    else if(navigator.clipboard){navigator.clipboard.writeText(t+" "+location.href);sb.textContent="✓ Copiado";}
+  });
+}
+function close(){$("#sh").classList.remove("on");document.body.style.overflow="";openId=null;}
+$("#sh").addEventListener("click",function(e){
+  if(e.target.classList.contains("bk")||e.target.closest("[data-x]"))close();});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
+
+/* ---------- barra de pedido ---------- */
+function bar(){
+  var ids=Object.keys(pick), f=$("#fb");
+  if(!D.wa.phone){f.hidden=true;return;}
+  var c=cur[ci];
+  if(!ids.length){
+    f.hidden=false;
+    f.innerHTML='<div class="txt"><b>¿Te interesa algo?</b>Escríbenos y te atendemos.</div>'+
+      '<a href="'+ce(wa((D.wa.pre||"Hola!")+" "+(D.biz.name||"")))+'" target="_blank" rel="noopener">💬 Escribir</a>';
+    return;}
+  var sel=items.filter(function(it){return pick[it.id]});
+  var tot=sel.reduce(function(s,it){return s+(pr(it,ci).final||0)},0);
+  var msg="Hola! Quiero pedir:\n\n"+sel.map(lineOf).join("\n")+
+    "\n\n*Total: "+fmt(tot,c)+"*"+(c.rate!==1?"\n_(tasa 1 "+cur[0].code+" = "+c.rate+" "+c.code+")_":"");
+  f.hidden=false;
+  f.innerHTML='<button class="clr" type="button" data-clear title="Vaciar">✕</button>'+
+    '<div class="txt"><b>'+sel.length+" producto"+(sel.length>1?"s":"")+"</b>Total "+fmt(tot,c)+"</div>"+
+    '<a href="'+ce(wa(msg))+'" target="_blank" rel="noopener">💬 Enviar pedido</a>';
+  f.querySelector("[data-clear]").addEventListener("click",function(){pick={};draw();bar();});
+}
+draw();bar();
+})();
+<%/script%>
+</body>
+</html>
+</script>
+</body>
+</html>
