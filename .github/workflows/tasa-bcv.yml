@@ -1,0 +1,73 @@
+name: Tasa BCV
+
+# Lee el tipo de cambio oficial en bcv.org.ve y lo guarda en tasa.json.
+# Se hace aqui, en el servidor, porque bcv.org.ve no envia cabeceras CORS
+# y por tanto un navegador no puede consultarlo directamente.
+
+on:
+  schedule:
+    # 11:10 y 21:10 UTC = 7:10 am y 5:10 pm hora de Venezuela
+    - cron: '10 11 * * 1-5'
+    - cron: '10 21 * * 1-5'
+  workflow_dispatch:        # permite lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tasa-bcv
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Leer la tasa del BCV
+        run: |
+          curl -s -k --max-time 60 --retry 3 --retry-delay 10 \
+               -A "Mozilla/5.0" https://www.bcv.org.ve/ -o bcv.html || true
+          node - <<'JS'
+          const fs = require('fs');
+          let html = '';
+          try { html = fs.readFileSync('bcv.html', 'utf8'); } catch (e) {}
+
+          const m = html.match(/id="dolar"[\s\S]{0,600}?<strong[^>]*>\s*([\d.,]+)\s*<\/strong>/i);
+          const f = html.match(/Fecha Valor[\s\S]{0,200}?(\w+,\s*\d{1,2}\s+\w+\s+\d{4})/i);
+          const usd = m ? parseFloat(m[1].replace(/\./g, '').replace(',', '.')) : 0;
+
+          // Si no se pudo leer o el valor no es plausible, NO se toca el archivo.
+          // Vale mas una tasa de ayer que dejar el catalogo con precios absurdos.
+          if (!(usd > 0.01 && usd < 10000000)) {
+            console.log('Sin valor usable; se conserva la tasa anterior.');
+            process.exit(0);
+          }
+
+          // Proteccion extra: un salto de mas de 5x respecto a lo guardado
+          // seria un cambio de formato en la pagina, no un movimiento real.
+          try {
+            const prev = JSON.parse(fs.readFileSync('tasa.json', 'utf8'));
+            if (prev.usd > 0 && (usd > prev.usd * 5 || usd < prev.usd / 5)) {
+              console.log('Salto implausible ' + prev.usd + ' -> ' + usd + '; se conserva.');
+              process.exit(0);
+            }
+          } catch (e) {}
+
+          fs.writeFileSync('tasa.json', JSON.stringify({
+            usd: usd,
+            fecha: f ? f[1].replace(/\s+/g, ' ') : '',
+            actualizado: new Date().toISOString(),
+            fuente: 'bcv.org.ve'
+          }, null, 1) + '\n');
+          console.log('Tasa BCV: ' + usd + '  (' + (f ? f[1] : 'sin fecha') + ')');
+          JS
+          rm -f bcv.html
+
+      - name: Guardar si cambio
+        run: |
+          git config user.name  'Tasa BCV'
+          git config user.email 'actions@github.com'
+          git add tasa.json
+          git diff --staged --quiet || git commit -m "Tasa BCV $(date -u +%Y-%m-%d)"
+          git push
