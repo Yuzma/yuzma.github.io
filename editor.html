@@ -401,8 +401,20 @@ input[type=color]{width:48px;height:40px;padding:2px;border:1px solid var(--bord
       <h2>Paso 2 · Encender la publicación web</h2>
       <p class="hint">En el repositorio: <b>Settings</b> → <b>Pages</b> → en <i>Source</i> elegir <b>Deploy from a branch</b>,
         rama <b>main</b>, carpeta <b>/ (root)</b> → <b>Save</b>.</p>
-      <div class="row"><input type="text" id="gh-owner" placeholder="usuario de GitHub" style="flex:1">
-        <input type="text" id="gh-repo" placeholder="catalogo" style="flex:1"></div>
+      <div class="grid g2">
+        <div><label class="f">Usuario</label><input type="text" id="gh-owner" placeholder="Yuzma"></div>
+        <div><label class="f">Repositorio público — la vitrina</label>
+          <input type="text" id="gh-repo" placeholder="yuzma.github.io"></div>
+      </div>
+      <div style="margin-top:12px"><label class="f">Repositorio privado — los datos</label>
+        <input type="text" id="gh-datarepo" placeholder="yuzma-datos"></div>
+      <div class="note-strong" style="background:color-mix(in srgb,var(--danger) 12%,transparent);
+           border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.55;margin-top:10px">
+        <b>Por qué son dos.</b> Los costos y los porcentajes de ganancia no pueden quedar en un
+        repositorio público: cualquiera podría leer cuánto le cuesta cada producto a la tienda.
+        Van en el privado. En el público solo queda lo que el cliente ve de todos modos: las fotos
+        y los catálogos publicados. Si dejas este campo vacío, todo va al público — no lo hagas.
+      </div>
       <p class="hint" style="margin-top:8px">Atajo a esa pantalla: <a href="#" id="gh-pages-link" target="_blank" rel="noopener">abrir Settings → Pages</a>
         (llena los dos campos primero)</p>
     </div>
@@ -1386,9 +1398,12 @@ function ghSave(){try{localStorage.setItem(GHKEY,JSON.stringify(GH));}catch(e){}
 function ghReady(){return !!(GH.owner&&GH.repo&&GH.token&&GH.verified);}
 function ghURL(){
   if(!GH.owner||!GH.repo)return '';
-  return GH.repo.toLowerCase()===(GH.owner+'.github.io').toLowerCase()
-    ? 'https://'+GH.owner+'.github.io/'
-    : 'https://'+GH.owner+'.github.io/'+GH.repo+'/';
+  /* GitHub Pages sirve siempre en minúsculas; el usuario puede tener
+     mayúsculas y el enlace se reparte por WhatsApp todos los días. */
+  const host=GH.owner.toLowerCase()+'.github.io';
+  return GH.repo.toLowerCase()===host
+    ? 'https://'+host+'/'
+    : 'https://'+host+'/'+GH.repo+'/';
 }
 function toB64(str){
   const b=new TextEncoder().encode(str);
@@ -1417,30 +1432,61 @@ function ghErr(status,body){
   return 'Error '+status+((body&&body.message)?': '+body.message:'');
 }
 
+/* Envoltorio: cualquiera que sea la salida de la prueba, la pantalla se
+   repinta. Sin esto, una prueba fallida dejaba el botón de publicar visible
+   con una configuración que ya no era válida. */
 async function ghTest(){
+  try{await ghTestInner();}finally{paintPublish();}
+}
+async function ghTestInner(){
   const box=$('#gh-test-result');
-  GH.owner=($('#gh-owner').value||'').trim().replace(/^@/,'');
-  GH.repo =($('#gh-repo').value||'').trim();
-  GH.token=($('#gh-token').value||'').trim();
-  GH.exp  =($('#gh-exp').value||'').trim();
+  GH.owner   =($('#gh-owner').value||'').trim().replace(/^@/,'');
+  GH.repo    =($('#gh-repo').value||'').trim();
+  GH.dataRepo=($('#gh-datarepo').value||'').trim();
+  GH.token   =($('#gh-token').value||'').trim();
+  GH.exp     =($('#gh-exp').value||'').trim();
   if(!GH.owner||!GH.repo||!GH.token){
     box.innerHTML='<span class="pill err">Faltan datos. Completa usuario, repositorio y llave.</span>';return;}
   box.textContent='Probando…';
-  const r=await ghApi('/repos/'+encodeURIComponent(GH.owner)+'/'+encodeURIComponent(GH.repo));
-  if(!r.ok){GH.verified=false;ghSave();
-    box.innerHTML='<span class="pill err">'+ghErr(r.status,r.body)+'</span>';return;}
-  const canPush=r.body&&r.body.permissions&&r.body.permissions.push;
-  let h='<div class="line"><span>Repositorio</span><b>'+(r.body.full_name||'')+'</b></div>';
-  h+='<div class="line"><span>Permiso de escritura</span><b>'+(canPush?'✓ sí':'✗ no')+'</b></div>';
-  h+='<div class="line"><span>Visibilidad</span><b>'+(r.body.private?'privado':'público')+'</b></div>';
-  if(canPush===false){
-    GH.verified=false;ghSave();
-    box.innerHTML=h+'<div class="line"><span class="pill err">La llave no puede escribir. Vuelve al paso 3 y pon Contents → Read and write.</span></div>';
-    return;}
-  if(r.body.private)h+='<div class="line"><span class="pill warn">Un repositorio privado no publica página web en el plan gratuito. Cámbialo a público.</span></div>';
+  GH.verified=false;
+
+  async function check(repo){
+    const r=await ghApi('/repos/'+encodeURIComponent(GH.owner)+'/'+encodeURIComponent(repo));
+    if(!r.ok)return{err:ghErr(r.status,r.body)};
+    return{name:r.body.full_name,push:!!(r.body.permissions&&r.body.permissions.push),priv:!!r.body.private};
+  }
+  const pub=await check(GH.repo);
+  if(pub.err){ghSave();box.innerHTML='<span class="pill err">Público: '+pub.err+'</span>';return;}
+  let h='<div class="line"><span>Vitrina (público)</span><b>'+pub.name+'</b></div>';
+  if(!pub.push){ghSave();
+    box.innerHTML=h+'<div class="line"><span class="pill err">La llave no puede escribir ahí. Revisa que el token incluya este repositorio con Contents → Read and write.</span></div>';return;}
+  if(pub.priv){ghSave();
+    box.innerHTML=h+'<div class="line"><span class="pill err">Este repositorio es privado y no puede servir la página web en el plan gratuito. Debe ser público.</span></div>';return;}
+
+  let priv=null;
+  if(GH.dataRepo&&GH.dataRepo!==GH.repo){
+    priv=await check(GH.dataRepo);
+    if(priv.err){ghSave();box.innerHTML=h+'<div class="line"><span class="pill err">Datos: '+priv.err+'</span></div>';return;}
+    h+='<div class="line"><span>Datos (privado)</span><b>'+priv.name+'</b></div>';
+    if(!priv.push){ghSave();
+      box.innerHTML=h+'<div class="line"><span class="pill err">La llave no puede escribir en el repositorio de datos. Al crear el token hay que seleccionar LOS DOS repositorios.</span></div>';return;}
+    if(!priv.priv)h+='<div class="line"><span class="pill warn">El repositorio de datos NO es privado. Los costos quedarían a la vista. Cámbialo a privado en Settings → General → Change visibility.</span></div>';
+  }else if(!GH.dataRepo){
+    /* No se deja continuar: guardar costos en un repositorio público es una
+       fuga de datos del negocio, no un detalle de configuración. */
+    ghSave();
+    box.innerHTML=h+'<div class="line"><span class="pill err">Falta el repositorio privado. '+
+      'Sin él, los costos y los porcentajes de ganancia quedarían visibles para cualquiera. '+
+      'Crea uno privado en github.com/new y escríbelo arriba.</span></div>';
+    return;
+  }else{
+    h+='<div class="line"><span class="pill warn">Estás usando el mismo repositorio público para los datos. '+
+       'Los costos y las ganancias van a quedar a la vista de cualquiera.</span></div>';
+  }
+
   GH.verified=true;ghSave();
-  h+='<div class="line"><span class="pill ok">✓ Todo listo para publicar</span></div>';
-  h+='<div class="line"><span>Enlace del catálogo</span><b>'+ghURL()+'</b></div>';
+  h+='<div class="line"><span class="pill ok">✓ Listo para publicar</span></div>';
+  h+='<div class="line"><span>Enlace base</span><b>'+ghURL()+'</b></div>';
   box.innerHTML=h;
   paintPublish();
 }
@@ -1547,29 +1593,36 @@ function b64ToStr(b64){
   return new TextDecoder().decode(u);
 }
 async function blobToB64(b){const d=await blobToDataURL(b);return d.slice(d.indexOf(',')+1);}
-function repoPath(p){return '/repos/'+encodeURIComponent(GH.owner)+'/'+encodeURIComponent(GH.repo)+'/contents/'+p;}
+/* Dos repositorios con roles distintos:
+   - GH.repo     público  → editor, fotos y catálogos publicados (lo que ve el cliente)
+   - GH.dataRepo privado  → costos, ganancias y productos ocultos
+   La API de GitHub escribe en privados sin problema; la limitación del plan
+   gratuito es solo para servir páginas web desde un repositorio privado. */
+function dataRepo(){return GH.dataRepo||GH.repo;}
+function repoPath(p,repo){
+  return '/repos/'+encodeURIComponent(GH.owner)+'/'+encodeURIComponent(repo||GH.repo)+'/contents/'+p;}
 
-async function ghGetFile(path){
-  const r=await ghApi(repoPath(path));
+async function ghGetFile(path,repo){
+  const r=await ghApi(repoPath(path,repo));
   if(r.status===404)return{missing:true};
   if(!r.ok)return{error:ghErr(r.status,r.body)};
   return{sha:r.body.sha,content:r.body.content?b64ToStr(r.body.content):'',size:r.body.size};
 }
-async function ghPutFile(path,b64,sha,msg){
+async function ghPutFile(path,b64,sha,msg,repo){
   const p={message:msg||'Actualizar catálogo',content:b64};
   if(sha)p.sha=sha;
-  const r=await ghApi(repoPath(path),'PUT',p);
+  const r=await ghApi(repoPath(path,repo),'PUT',p);
   if(r.status===409||(r.status===422&&/sha/i.test((r.body&&r.body.message)||'')))return{conflict:true};
   if(!r.ok)return{error:ghErr(r.status,r.body),status:r.status};
   return{sha:r.body&&r.body.content?r.body.content.sha:null};
 }
-async function ghDelFile(path){
-  const g=await ghGetFile(path);
+async function ghDelFile(path,repo){
+  const g=await ghGetFile(path,repo);
   if(g.missing||g.error)return;
-  await ghApi(repoPath(path),'DELETE',{message:'Quitar archivo',sha:g.sha});
+  await ghApi(repoPath(path,repo),'DELETE',{message:'Quitar archivo',sha:g.sha});
 }
-async function ghListDir(dir){
-  const r=await ghApi(repoPath(dir));
+async function ghListDir(dir,repo){
+  const r=await ghApi(repoPath(dir,repo));
   if(r.status===404)return[];
   if(!r.ok)return{error:ghErr(r.status,r.body)};
   return Array.isArray(r.body)?r.body:[];
@@ -1588,13 +1641,13 @@ function localIdxSet(a){try{localStorage.setItem(IDXKEY,JSON.stringify(a));}catc
 const Store={
   async list(){
     if(teamMode()){
-      const l=await ghListDir('datos');
+      const l=await ghListDir('datos',dataRepo());
       if(l.error)return{error:l.error};
       const out=[];
       for(const f of l){
         if(!/\.json$/i.test(f.name))continue;
         const slug=f.name.replace(/\.json$/i,'');
-        const g=await ghGetFile('datos/'+f.name);
+        const g=await ghGetFile('datos/'+f.name,dataRepo());
         let d=null;if(!g.error&&!g.missing){try{d=JSON.parse(g.content);}catch(e){}}
         out.push(Object.assign(metaOf(slug,d),{sha:g.sha}));
       }
@@ -1607,7 +1660,7 @@ const Store={
   },
   async get(slug){
     if(teamMode()){
-      const g=await ghGetFile('datos/'+slug+'.json');
+      const g=await ghGetFile('datos/'+slug+'.json',dataRepo());
       if(g.error)return{error:g.error};
       if(g.missing)return{error:'Ese catálogo ya no existe en el repositorio.'};
       try{return{data:JSON.parse(g.content),sha:g.sha};}
@@ -1619,7 +1672,7 @@ const Store={
   async put(slug,data,sha){
     const txt=JSON.stringify(data);
     if(teamMode())return await ghPutFile('datos/'+slug+'.json',toB64(txt),sha,
-      'Actualizar '+slug+(WHO?' ('+WHO+')':''));
+      'Actualizar '+slug+(WHO?' ('+WHO+')':''),dataRepo());
     try{localStorage.setItem(DKEY+slug,txt);
       const i=localIdx();if(i.indexOf(slug)<0){i.push(slug);localIdxSet(i);}
       return{sha:null};}
@@ -1628,7 +1681,7 @@ const Store={
       :'No se pudo guardar.'};}
   },
   async del(slug){
-    if(teamMode()){await ghDelFile('datos/'+slug+'.json');return;}
+    if(teamMode()){await ghDelFile('datos/'+slug+'.json',dataRepo());return;}
     try{localStorage.removeItem(DKEY+slug);localIdxSet(localIdx().filter(s=>s!==slug));}catch(e){}
   }
 };
@@ -1927,6 +1980,7 @@ function boot(){
   /* publicación */
   $('#gh-owner').value=GH.owner||'';
   $('#gh-repo').value =GH.repo ||'';
+  $('#gh-datarepo').value=GH.dataRepo||'';
   $('#gh-token').value=GH.token||'';
   $('#gh-exp').value  =GH.exp  ||'';
   $('#btn-gh-test').addEventListener('click',ghTest);
@@ -1936,7 +1990,7 @@ function boot(){
   $('#btn-gh-forget').addEventListener('click',()=>{
     if(!confirm('Se borra la llave de publicación de este teléfono. El catálogo ya publicado sigue en línea, pero no se podrá publicar de nuevo hasta volver a configurarlo. ¿Continuar?'))return;
     GH={};try{localStorage.removeItem(GHKEY);}catch(e){}
-    ['#gh-owner','#gh-repo','#gh-token','#gh-exp'].forEach(s=>$(s).value='');
+    ['#gh-owner','#gh-repo','#gh-datarepo','#gh-token','#gh-exp'].forEach(s=>$(s).value='');
     $('#gh-test-result').textContent='Sin probar todavía.';
     paintPublish();toast('Llave borrada');
   });
