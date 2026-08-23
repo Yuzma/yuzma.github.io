@@ -1177,11 +1177,26 @@ function paintLogo(){
   if(!S.biz.logo){im.hidden=true;im.removeAttribute('src');return;}
   mediaURL(S.biz.logo).then(u=>{if(u){im.src=u;im.hidden=false;}else{im.hidden=true;}});
 }
+/* Contar dígitos no basta: un número nacional sin código de país pasa esa
+   prueba y luego el botón no abre ningún chat. Se detectan los errores
+   frecuentes y, sobre todo, se obliga a probar el enlace de verdad. */
 function checkPhone(){
   const el=$('#wa-check'), d=cleanPhone(S.wa.phone);
-  if(!d){el.innerHTML='<span class="pill warn">Sin número: no habrá botón de pedido</span>';return;}
-  if(phoneOK(d))el.innerHTML='<span class="pill ok">✓ Formato válido — wa.me/'+d+'</span>';
-  else el.innerHTML='<span class="pill err">Revisa: deben ser 8–15 dígitos, sin + y sin 0 inicial</span>';
+  const err=m=>el.innerHTML='<span class="pill err">'+m+'</span>';
+  if(!d)return el.innerHTML='<span class="pill warn">Sin número: no habrá botón de pedido</span>';
+  if(d[0]==='0')
+    return err('Quita el 0 del principio. Un 0412-6456637 se escribe 584126456637');
+  if(/^4(12|14|16|24|26)/.test(d)&&d.length<=10)
+    return err('Falta el código de país. Si es de Venezuela debe empezar por 58: <b>58'+d+'</b>');
+  if(d.length<10)
+    return err('Muy corto: '+d.length+' dígitos. Con código de país suelen ser 11 a 13.');
+  if(d.length>15)
+    return err('Demasiado largo: '+d.length+' dígitos. El máximo internacional son 15.');
+  el.innerHTML='<span class="pill ok">Formato correcto</span>'+
+    '<div style="margin-top:8px;font-size:12.5px;line-height:1.5">'+
+    'Los dígitos cuadran, pero eso no garantiza que sea el chat correcto. '+
+    '<b>Compruébalo:</b> <a href="https://wa.me/'+d+'" target="_blank" rel="noopener">abrir wa.me/'+d+'</a>'+
+    ' — debe abrir el chat de la tienda, no un número desconocido.</div>';
 }
 
 /* ============================================================
