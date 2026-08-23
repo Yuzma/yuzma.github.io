@@ -37,8 +37,24 @@ a{color:var(--brand)}
 .tab{border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:999px;
      font-size:13.5px;font-weight:600;white-space:nowrap}
 .tab[aria-selected="true"]{background:var(--brand);color:var(--brand-ink)}
-main{max-width:1080px;margin:0 auto;padding:16px 14px 96px}
+main{max-width:1080px;margin:0 auto;padding:16px 14px 120px}
 .panel[hidden]{display:none}
+
+/* Barra fija de publicación: la acción más repetida no puede vivir
+   escondida en otra pestaña. Se ve desde cualquier pantalla. */
+.pubbar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--surface);
+        border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;
+        padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+        box-shadow:0 -4px 20px rgba(0,0,0,.10)}
+.pubbar .txt{flex:1;min-width:0;font-size:12px;color:var(--muted);line-height:1.35}
+.pubbar .txt b{display:block;font-size:13.5px;color:var(--text);font-weight:650;
+               white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pubbar.dirty{border-top:2px solid var(--brand)}
+.pubbar.dirty .txt b{color:var(--brand)}
+.pubbar button{border:0;border-radius:11px;padding:12px 18px;font-size:14.5px;font-weight:750;
+               background:var(--brand);color:var(--brand-ink);min-height:48px;white-space:nowrap}
+.pubbar button:disabled{opacity:.6}
+.pubbar button.done{background:var(--surface-2);color:var(--muted)}
 
 .btn{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 13px;
      font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;min-height:38px}
@@ -119,9 +135,6 @@ input[type=color]{width:48px;height:40px;padding:2px;border:1px solid var(--bord
   <h1>🛍️ Catálogo</h1>
   <span class="pill" id="savestate">guardado</span>
   <span class="spacer"></span>
-  <button class="btn sm" id="btn-backup">⬇︎ Respaldo</button>
-  <button class="btn sm" id="btn-restore">⬆︎ Restaurar</button>
-  <button class="btn sm primary" id="btn-export">📤 Generar catálogo</button>
 </div>
 <nav class="tabs" role="tablist">
   <button class="tab" role="tab" data-tab="panel" aria-selected="true">Catálogos</button>
@@ -317,6 +330,8 @@ input[type=color]{width:48px;height:40px;padding:2px;border:1px solid var(--bord
       <p class="hint" id="q-note" style="margin:6px 0 0"></p></div>
     <div class="row">
       <button class="btn primary" id="btn-export2">📤 Descargar catálogo.html</button>
+      <button class="btn" id="btn-backup">⬇︎ Respaldo</button>
+      <button class="btn" id="btn-restore">⬆︎ Restaurar</button>
       <button class="btn" id="btn-print">🖨️ Imprimir / Guardar PDF</button>
       <button class="btn ghost" id="btn-recalc">↻ Recalcular peso</button>
     </div>
@@ -527,6 +542,10 @@ input[type=color]{width:48px;height:40px;padding:2px;border:1px solid var(--bord
   </div>
 </section>
 </main>
+<div class="pubbar" id="pubbar" hidden>
+  <div class="txt"><b id="pubbar-t"></b><span id="pubbar-s"></span></div>
+  <button id="pubbar-go" type="button">Publicar</button>
+</div>
 <div class="toast" id="toast"></div>
 <input type="file" id="filepick" hidden accept="image/*,video/*" multiple>
 <input type="file" id="jsonpick" hidden accept="application/json,.json">
@@ -700,6 +719,7 @@ function save(){
   if(!CURSLUG)return;
   S._editor=WHO;S._editado=new Date().toISOString();
   markState('sin subir','warn');
+  pubbar();
   try{localStorage.setItem(DRAFT+CURSLUG,JSON.stringify(S));}catch(e){warnStorage('all');}
   clearTimeout(cloudT);
   cloudT=setTimeout(cloudSave,2000);
@@ -714,6 +734,7 @@ async function cloudSave(){
   CURSHA=r.sha||CURSHA;
   try{localStorage.removeItem(DRAFT+CURSLUG);}catch(e){}
   markState(teamMode()?'en la nube':'guardado','ok');
+  pubbar();
 }
 
 /* ============================================================
@@ -900,59 +921,71 @@ function productRow(p,idx){
   if(!open)return el;
 
   const body=document.createElement('div');body.className='pbody';
+  /* Lo esencial arriba —foto, nombre, precio— y todo lo demás plegado.
+     Un producto se puede cargar en tres campos; el resto es opcional. */
   body.innerHTML=
-   '<div class="grid g2">'+
-     '<div><label class="f">Nombre del producto</label><input type="text" data-k="name"></div>'+
-     '<div><label class="f">Categoría</label><input type="text" data-k="cat" list="catlist" placeholder="Ej: Camisas"></div>'+
-   '</div>'+
-   '<div class="grid g2" style="margin-top:12px">'+
-     '<div><label class="f">Descripción corta</label><input type="text" data-k="desc" maxlength="140" placeholder="Una línea. Lo que lo hace distinto."></div>'+
-     '<div><label class="f">Código / SKU</label><input type="text" data-k="sku"></div>'+
-   '</div>'+
-   '<div style="margin-top:12px"><label class="f">Puntos clave <span style="text-transform:none;font-weight:500">— una viñeta por línea, máximo 5</span></label>'+
-     '<textarea data-k="highlights" placeholder="Talla S a XL&#10;Algodón 100%&#10;Envío en 24 h"></textarea>'+
-     '<p class="hint" style="margin:4px 0 0">Los compradores que comparan varios productos no leen párrafos: escanean viñetas.</p></div>'+
-
-   '<div class="sep"></div>'+
    '<label class="f">Fotos y videos</label>'+
    '<div class="mstrip" data-strip></div>'+
    '<div class="row" style="margin-top:4px">'+
-     '<button class="btn sm" data-act="addfile">📁 Subir archivo</button>'+
-     '<button class="btn sm" data-act="addurl">🔗 Pegar enlace</button>'+
-     '<span class="hint" style="margin:0">La 1ª imagen es la portada. Video ideal: 30–60 s.</span></div>'+
+     '<button class="btn sm" data-act="addfile">📁 Subir foto</button>'+
+     '<button class="btn sm ghost" data-act="addurl">🔗 Enlace</button>'+
+     '<span class="hint" style="margin:0">La primera es la portada.</span></div>'+
 
-   '<div class="sep"></div>'+
-   '<div class="grid g2">'+
+   '<div style="margin-top:14px"><label class="f">Nombre</label><input type="text" data-k="name" placeholder="Camisa de lino"></div>'+
+
+   '<div class="grid g2" style="margin-top:12px">'+
      '<div><label class="f">Precio en dólares</label>'+
-       '<input type="number" step="0.01" min="0" data-k="price" placeholder="0.00"></div>'+
-     '<div><label class="f">Descuento (%) — opcional</label>'+
-       '<input type="number" step="0.1" min="0" max="99" data-k="discountPct"></div>'+
+       '<input type="number" step="0.01" min="0" inputmode="decimal" data-k="price" placeholder="0.00"></div>'+
+     '<div><label class="f">Categoría</label><input type="text" data-k="cat" list="catlist" placeholder="Ej: Camisas"></div>'+
    '</div>'+
    '<div class="pricebox" data-preview></div>'+
 
-   '<div class="sep"></div>'+
-   '<div class="grid g2">'+
-     '<div><label class="f">Disponibilidad</label>'+
-       '<select data-k="stockMode">'+
-         '<option value="none">No mostrar</option>'+
-         '<option value="in">Disponible</option>'+
-         '<option value="count">Cantidad exacta</option>'+
-         '<option value="out">Agotado</option></select></div>'+
-     '<div data-countwrap hidden><label class="f">Unidades reales en existencia</label><input type="number" min="0" step="1" data-k="stockCount"></div>'+
-   '</div>'+
-   '<p class="hint" style="margin-top:6px">Pon el número real. Inventar escasez ("¡solo quedan 2!") está catalogado como patrón engañoso y la FTC emitió cartas de advertencia en 2023 por urgencia falsa.</p>'+
+   '<button class="btn sm ghost" data-more style="width:100%;justify-content:center;margin-top:12px">'+
+     'Más detalles ▾</button>'+
 
-   '<div style="margin-top:12px"><label class="f">Enlace del producto (marketplace, tienda, publicación)</label>'+
-     '<input type="url" data-k="link" placeholder="https://..."></div>'+
+   '<div data-extra hidden>'+
+     '<div class="sep"></div>'+
+     '<div><label class="f">Descripción corta</label>'+
+       '<input type="text" data-k="desc" maxlength="140" placeholder="Una línea. Lo que lo hace distinto."></div>'+
+     '<div style="margin-top:12px"><label class="f">Puntos clave <span style="text-transform:none;font-weight:500">— uno por línea, máximo 5</span></label>'+
+       '<textarea data-k="highlights" placeholder="Talla S a XL&#10;Algodón 100%&#10;Envío en 24 h"></textarea>'+
+       '<p class="hint" style="margin:4px 0 0">Quien compara varios productos no lee párrafos: escanea viñetas.</p></div>'+
+     '<div class="grid g2" style="margin-top:12px">'+
+       '<div><label class="f">Descuento (%)</label>'+
+         '<input type="number" step="0.1" min="0" max="99" data-k="discountPct"></div>'+
+       '<div><label class="f">Código / SKU</label><input type="text" data-k="sku"></div>'+
+     '</div>'+
+     '<div class="grid g2" style="margin-top:12px">'+
+       '<div><label class="f">Disponibilidad</label>'+
+         '<select data-k="stockMode">'+
+           '<option value="none">No mostrar</option>'+
+           '<option value="in">Disponible</option>'+
+           '<option value="count">Cantidad exacta</option>'+
+           '<option value="out">Agotado</option></select></div>'+
+       '<div data-countwrap hidden><label class="f">Unidades reales</label><input type="number" min="0" step="1" data-k="stockCount"></div>'+
+     '</div>'+
+     '<p class="hint" style="margin-top:6px">Pon el número real. Inventar escasez está catalogado como patrón engañoso y la FTC emitió cartas de advertencia en 2023 por urgencia falsa.</p>'+
+     '<div style="margin-top:12px"><label class="f">Enlace del producto (marketplace, publicación)</label>'+
+       '<input type="url" data-k="link" placeholder="https://..."></div>'+
+   '</div>'+
 
    '<div class="sep"></div>'+
    '<div class="row">'+
-     '<label class="f chk" style="margin:0"><input type="checkbox" data-k="active"> Visible en el catálogo</label>'+
+     '<label class="f chk" style="margin:0"><input type="checkbox" data-k="active"> Visible</label>'+
      '<span style="flex:1"></span>'+
      '<button class="btn sm" data-act="dup">Duplicar</button>'+
      '<button class="btn sm danger" data-act="del">Eliminar</button>'+
    '</div>';
   el.appendChild(body);
+
+  const more=body.querySelector('[data-more]'), extra=body.querySelector('[data-extra]');
+  if(p.desc||(p.highlights||[]).length||p.sku||p.link||num(p.discountPct)||p.stockMode!=='none'){
+    extra.hidden=false;more.textContent='Menos detalles ▴';
+  }
+  more.addEventListener('click',()=>{
+    extra.hidden=!extra.hidden;
+    more.textContent=extra.hidden?'Más detalles ▾':'Menos detalles ▴';
+  });
 
   /* poblar campos */
   body.querySelectorAll('[data-k]').forEach(inp=>{
@@ -1066,7 +1099,12 @@ $('#filepick').addEventListener('change',async e=>{
 
 $('#btn-add').addEventListener('click',()=>{
   const p=newProduct();S.products.push(p);openRows.add(p.id);save();renderProducts();
-  window.scrollTo(0,document.body.scrollHeight);
+  const fila=$('.prow[data-id="'+p.id+'"]');
+  if(fila){
+    fila.scrollIntoView({block:'center',behavior:'smooth'});
+    const n=fila.querySelector('[data-k="name"]');
+    if(n)setTimeout(()=>n.focus(),350);
+  }
 });
 
 /* ---------- reordenar ---------- */
@@ -1340,7 +1378,6 @@ async function doExport(){
   download(slug+'.html',html);
   toast('Descargado — '+bytes(new Blob([html]).size));
 }
-$('#btn-export').addEventListener('click',doExport);
 $('#btn-export2').addEventListener('click',doExport);
 $('#btn-print').addEventListener('click',async ()=>{
   const html=await buildHTML();const w=window.open('','_blank');
@@ -1548,16 +1585,17 @@ async function ghTestInner(){
   paintPublish();
 }
 
-async function ghPublish(){
-  const btn=$('#btn-publish'), box=$('#pub-result');
+async function ghPublish(desdeBarra){
+  const btn=desdeBarra?$('#pubbar-go'):$('#btn-publish'), box=$('#pub-result');
+  const etq=t=>{btn.textContent=t;};
   if(!CURSLUG){box.innerHTML='<span class="pill err">Primero abre un catálogo desde la pestaña Catálogos.</span>';return;}
-  btn.disabled=true;btn.textContent='Guardando…';
+  btn.disabled=true;etq('Guardando…');
   try{
     await cloudSave();                      /* que lo publicado y lo guardado coincidan */
-    btn.textContent='Generando…';
+    etq('Generando…');
     const html=await buildHTML(false);      /* fotos por referencia, no incrustadas */
     const size=new Blob([html]).size;
-    btn.textContent='Subiendo…';
+    etq('Subiendo…');
     const path=CURSLUG+'/index.html';
     let sha=null;
     const cur=await ghGetFile(path);
@@ -1570,12 +1608,30 @@ async function ghPublish(){
     GH.last=S._publicado;GH.lastSize=size;ghSave();
     box.innerHTML='<div class="line"><span class="pill ok">✓ Publicado</span><b>'+bytes(size)+'</b></div>'+
       '<div class="line"><span>Los clientes lo verán en menos de un minuto.</span></div>';
-    paintPublish(true);
+    paintPublish(true);pubbar();
+    if(desdeBarra)toast('✓ Publicado — los clientes ya lo ven');
   }catch(e){
     box.innerHTML='<span class="pill err">No se pudo publicar: '+(e.message||e.name)+'</span>';
   }finally{
-    btn.disabled=false;btn.textContent='🚀 Publicar ahora';
+    btn.disabled=false;etq(desdeBarra?'Publicar':'🚀 Publicar ahora');pubbar();
   }
+}
+
+/* ---------- barra fija de publicación ---------- */
+function pubbar(){
+  const bar=$('#pubbar');if(!bar)return;
+  if(!CURSLUG||!ghReady()){bar.hidden=true;return;}
+  bar.hidden=false;
+  const sinPublicar = !S._publicado || (S._editado && S._editado > S._publicado);
+  bar.classList.toggle('dirty',!!sinPublicar);
+  const btn=$('#pubbar-go');
+  btn.classList.toggle('done',!sinPublicar);
+  btn.textContent=sinPublicar?'Publicar':'Publicado';
+  btn.disabled=false;
+  $('#pubbar-t').textContent=(S.biz&&S.biz.name)||CURSLUG;
+  $('#pubbar-s').textContent=sinPublicar
+    ? 'Hay cambios que los clientes todavía no ven'
+    : ('Al día'+(S._publicado?' · '+since(S._publicado):''));
 }
 
 function paintPublish(keepResult){
@@ -1845,9 +1901,10 @@ async function openCat(slug){
   migrarPrecios(data);
   CURSLUG=slug;CURSHA=r.sha||null;
   openRows.clear();
-  refreshFields();renderProducts();renderRates();renderLinks();renderMarginExplain();paintLogo();checkPhone();
+  refreshFields();renderProducts();renderRates();renderLinks();renderMarginExplain();paintLogo();checkPhone();pubbar();
   gotoTab('productos');
   toast('Abierto: '+((S.biz&&S.biz.name)||slug));
+  tasaAlAbrir();
 }
 
 /* Los catálogos creados antes guardaban costo + porcentaje de ganancia.
@@ -2065,7 +2122,8 @@ function boot(){
   $('#gh-token').value=GH.token||'';
   $('#gh-exp').value  =GH.exp  ||'';
   $('#btn-gh-test').addEventListener('click',ghTest);
-  $('#btn-publish').addEventListener('click',ghPublish);
+  $('#btn-publish').addEventListener('click',()=>ghPublish(false));
+  $('#pubbar-go').addEventListener('click',()=>ghPublish(true));
   $('#btn-copy-url').addEventListener('click',()=>copy($('#pub-url').value,'Enlace copiado'));
   $('#btn-pub-settings').addEventListener('click',()=>{GH.showWizard=!GH.showWizard;ghSave();paintPublish(true);});
   $('#btn-gh-forget').addEventListener('click',()=>{
@@ -2091,7 +2149,7 @@ function boot(){
     $('#who-card').hidden=!!WHO;toast(WHO?('Hola, '+WHO):'');
   });
 
-  renderProducts();renderRates();renderLinks();renderMarginExplain();paintLogo();checkPhone();
+  renderProducts();renderRates();renderLinks();renderMarginExplain();paintLogo();checkPhone();pubbar();
   markState('—');
 }
 
@@ -2110,6 +2168,20 @@ function migrar(){
   }catch(e){}
 }
 
+/* Si la tasa es automática y no hay una reciente, se consulta en segundo
+   plano al abrir. Nadie debería tener que pedir la tasa del día. */
+async function tasaAlAbrir(){
+  const v=S.ves;
+  if(!v||!v.on||v.mode==='manual')return;
+  const edad=v.lastAt?(Date.now()-new Date(v.lastAt).getTime()):Infinity;
+  if(num(v.last)>0&&edad<6*3600000)return;
+  const r=await fetchRate(v.mode);
+  if(r.error||!CURSLUG)return;
+  if(num(S.ves.last)===r.rate)return;
+  S.ves.last=r.rate;S.ves.lastAt=r.at;S.ves.lastSrc=r.src;
+  save();renderRates();renderProducts();
+}
+
 async function arrancar(){
   boot();
   migrar();
@@ -2117,7 +2189,7 @@ async function arrancar(){
   await renderCats();
   /* si hay uno solo, se abre directo: para la empleada de un solo catálogo
      el panel no debería ser un paso extra todos los días */
-  if(CATS.length===1)openCat(CATS[0].slug);
+  if(CATS.length===1)await openCat(CATS[0].slug);
 }
 arrancar();
 window.addEventListener('beforeunload',e=>{
