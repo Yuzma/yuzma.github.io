@@ -9,7 +9,7 @@ on:
     # 11:10 y 21:10 UTC = 7:10 am y 5:10 pm hora de Venezuela
     - cron: '10 11 * * 1-5'
     - cron: '10 21 * * 1-5'
-  workflow_dispatch:        # permite lanzarlo a mano desde la pestaña Actions
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Leer la tasa del BCV
+      - name: Leer y verificar la tasa del BCV
         run: |
           curl -s -k --max-time 60 --retry 3 --retry-delay 10 \
                -A "Mozilla/5.0" https://www.bcv.org.ve/ -o bcv.html || true
@@ -33,34 +33,56 @@ jobs:
           let html = '';
           try { html = fs.readFileSync('bcv.html', 'utf8'); } catch (e) {}
 
-          const m = html.match(/id="dolar"[\s\S]{0,600}?<strong[^>]*>\s*([\d.,]+)\s*<\/strong>/i);
-          const f = html.match(/Fecha Valor[\s\S]{0,200}?(\w+,\s*\d{1,2}\s+\w+\s+\d{4})/i);
-          const usd = m ? parseFloat(m[1].replace(/\./g, '').replace(',', '.')) : 0;
+          const num = t => parseFloat(String(t).replace(/\./g, '').replace(',', '.'));
+          const bloque = id => {
+            const m = html.match(new RegExp('id="' + id + '"[\\s\\S]{0,600}?<strong[^>]*>\\s*([\\d.,]+)\\s*<\\/strong>', 'i'));
+            return m ? num(m[1]) : 0;
+          };
 
-          // Si no se pudo leer o el valor no es plausible, NO se toca el archivo.
-          // Vale mas una tasa de ayer que dejar el catalogo con precios absurdos.
-          if (!(usd > 0.01 && usd < 10000000)) {
-            console.log('Sin valor usable; se conserva la tasa anterior.');
-            process.exit(0);
-          }
+          const usd = bloque('dolar');
+          const eur = bloque('euro');
+          const f   = html.match(/Fecha Valor[\s\S]{0,200}?(\w+,\s*\d{1,2}\s+\w+\s+\d{4})/i);
 
-          // Proteccion extra: un salto de mas de 5x respecto a lo guardado
-          // seria un cambio de formato en la pagina, no un movimiento real.
-          try {
-            const prev = JSON.parse(fs.readFileSync('tasa.json', 'utf8'));
-            if (prev.usd > 0 && (usd > prev.usd * 5 || usd < prev.usd / 5)) {
-              console.log('Salto implausible ' + prev.usd + ' -> ' + usd + '; se conserva.');
-              process.exit(0);
+          const abortar = motivo => { console.log('NO se actualiza: ' + motivo); process.exit(0); };
+
+          if (!(usd > 0.01 && usd < 10000000)) abortar('sin valor usable en el bloque del dolar');
+
+          // El BCV publica cinco monedas juntas. Si un rediseno de su pagina
+          // hiciera que el extractor agarrara el euro en vez del dolar, el valor
+          // seria plausible y pasaria inadvertido. Por eso se compara: el euro
+          // siempre vale mas que el dolar; si coinciden, se leyo mal.
+          if (eur > 0 && Math.abs(usd - eur) / eur < 0.001) abortar('el valor del dolar coincide con el del euro; probable lectura equivocada');
+
+          let previo = 0;
+          try { previo = JSON.parse(fs.readFileSync('tasa.json', 'utf8')).usd || 0; } catch (e) {}
+          if (previo > 0 && (usd > previo * 5 || usd < previo / 5)) abortar('salto implausible ' + previo + ' -> ' + usd);
+
+          // Verificacion cruzada con una fuente independiente. Protege contra el
+          // caso peligroso: leer un numero equivocado que igual parezca razonable.
+          (async () => {
+            let externa = 0;
+            try {
+              const r = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(20000) });
+              if (r.ok) externa = parseFloat((await r.json()).rates.VES) || 0;
+            } catch (e) { console.log('Fuente de contraste no disponible; se continua solo con el BCV.'); }
+
+            if (externa > 0) {
+              const dif = Math.abs(usd - externa) / externa;
+              console.log('BCV ' + usd + '  vs contraste ' + externa + '  = ' + (dif * 100).toFixed(2) + '% de diferencia');
+              // 8% cubre el desfase normal entre la publicacion del BCV y la de
+              // la fuente externa; una lectura de otra moneda daria mucho mas.
+              if (dif > 0.08) abortar('las dos fuentes no concuerdan (' + (dif * 100).toFixed(1) + '%)');
             }
-          } catch (e) {}
 
-          fs.writeFileSync('tasa.json', JSON.stringify({
-            usd: usd,
-            fecha: f ? f[1].replace(/\s+/g, ' ') : '',
-            actualizado: new Date().toISOString(),
-            fuente: 'bcv.org.ve'
-          }, null, 1) + '\n');
-          console.log('Tasa BCV: ' + usd + '  (' + (f ? f[1] : 'sin fecha') + ')');
+            fs.writeFileSync('tasa.json', JSON.stringify({
+              usd: usd,
+              fecha: f ? f[1].replace(/\s+/g, ' ') : '',
+              actualizado: new Date().toISOString(),
+              fuente: 'bcv.org.ve',
+              contraste: externa || null
+            }, null, 1) + '\n');
+            console.log('Tasa BCV: ' + usd + '  (' + (f ? f[1] : 'sin fecha') + ')');
+          })();
           JS
           rm -f bcv.html
 
