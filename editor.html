@@ -168,53 +168,61 @@ input[type=color]{width:48px;height:40px;padding:2px;border:1px solid var(--bord
 <!-- ============ PRECIOS ============ -->
 <section class="panel" id="p-precios" hidden>
   <div class="card">
-    <h2>Moneda base</h2>
-    <p class="hint">Es la moneda en la que escribes los costos y precios de tus productos. Todo lo demás se calcula a partir de ella.</p>
-    <div class="grid g3">
-      <div><label class="f">Código</label><input type="text" id="baseCode" maxlength="6" placeholder="USD"></div>
-      <div><label class="f">Símbolo</label><input type="text" id="baseSym" maxlength="4" placeholder="$"></div>
-      <div><label class="f">Decimales</label><input type="number" id="baseDec" min="0" max="4" step="1"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Tasas de cambio</h2>
-    <p class="hint">Agrega una fila por cada moneda adicional que quieras mostrar. El cliente podrá cambiar entre ellas con un botón.</p>
-    <div id="rates"></div>
-    <button class="btn sm" id="btn-add-rate" style="margin-top:10px">+ Agregar tasa</button>
-    <div class="sep"></div>
-    <label class="f chk"><input type="checkbox" id="showAllRates"> Mostrar todas las monedas a la vez (en vez de un selector)</label>
-    <div style="margin-top:10px"><label class="f">Nota de tasa visible para el cliente</label>
-      <input type="text" id="rateNote" placeholder="Ej: Tasa BCV del día. Precios sujetos a cambio."></div>
-  </div>
-
-  <div class="card">
-    <h2>Ganancia global</h2>
-    <p class="hint">Se aplica a los productos en modo <b>Costo + ganancia</b>. Cada producto puede sobrescribirla con su propio porcentaje.</p>
+    <h2>Precios en dólares</h2>
+    <p class="hint">El precio de cada producto se escribe en dólares, en la pestaña Productos.
+      Los bolívares se calculan solos con la tasa.</p>
     <div class="grid g2">
-      <div>
-        <label class="f">Tipo de cálculo</label>
-        <select id="marginMode">
-          <option value="markup">Markup — % sobre el costo (precio = costo × (1 + %))</option>
-          <option value="margin">Margen — % sobre el precio de venta (precio = costo ÷ (1 − %))</option>
-        </select>
-      </div>
-      <div><label class="f">Porcentaje global (%)</label><input type="number" id="marginPct" step="0.1"></div>
+      <div><label class="f">Decimales en dólares</label><input type="number" id="baseDec" min="0" max="4" step="1"></div>
+      <div><label class="f">Decimales en bolívares</label><input type="number" id="vesDec" min="0" max="4" step="1"></div>
     </div>
-    <div class="pricebox" id="margin-explain"></div>
   </div>
 
   <div class="card">
-    <h2>Redondeo</h2>
-    <p class="hint">Se aplica al precio final en cada moneda, después de convertir.</p>
+    <h2>Tasa del bolívar</h2>
+    <label class="f chk" style="margin-bottom:12px"><input type="checkbox" id="vesOn"> Mostrar precios en bolívares</label>
+    <div id="ves-box">
+      <label class="f">De dónde sale la tasa</label>
+      <select id="vesMode">
+        <option value="bcv">BCV — oficial, automática</option>
+        <option value="paralelo">Paralelo — automática</option>
+        <option value="manual">La escribo yo</option>
+      </select>
+
+      <div id="ves-auto" style="margin-top:12px">
+        <div class="row">
+          <button class="btn sm primary" id="btn-fetch-rate">↻ Consultar ahora</button>
+          <span class="hint" style="margin:0">El catálogo publicado también la consulta solo cada vez que un cliente lo abre.</span>
+        </div>
+        <div class="pricebox" id="rate-state" style="margin-top:10px"></div>
+      </div>
+
+      <div id="ves-manual" style="margin-top:12px" hidden>
+        <label class="f">Bolívares por dólar</label>
+        <input type="number" id="vesManual" step="0.0001" min="0" placeholder="784">
+      </div>
+
+      <div style="margin-top:12px"><label class="f">Ajuste sobre la tasa (%) — opcional</label>
+        <input type="number" id="vesAdj" step="0.1" placeholder="0">
+        <p class="hint" style="margin:6px 0 0">Si vendes un poco por encima de la tasa, ponlo aquí.
+          Con 0 se usa la tasa tal cual. Ejemplo: 5 significa tasa + 5%.</p></div>
+
+      <div class="pricebox" id="ves-preview" style="margin-top:12px"></div>
+
+      <div style="margin-top:12px"><label class="f">Nota visible para el cliente</label>
+        <input type="text" id="rateNote" placeholder="Precios sujetos a cambio sin previo aviso."></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Redondeo de los bolívares</h2>
+    <p class="hint">Se aplica después de convertir. Con la tasa actual, los montos en bolívares
+      salen con decimales largos que no aportan nada.</p>
     <div class="grid g2">
       <div><label class="f">Regla</label>
         <select id="roundMode">
+          <option value="int">Al entero más cercano (recomendado)</option>
+          <option value="up">Hacia arriba</option>
           <option value="none">Sin redondeo</option>
-          <option value="int">Al entero más cercano</option>
-          <option value="up">Hacia arriba (entero)</option>
-          <option value="99">Terminar en .99</option>
-          <option value="90">Terminar en .90</option>
           <option value="step">Múltiplo de…</option>
         </select>
       </div>
@@ -672,11 +680,12 @@ const DEFAULTS={
   biz:{name:'Mi Tienda',tagline:'',logo:null,color:'#0b7a4b',heroMsg:'',validUntil:''},
   wa:{phone:'',pre:'Hola! Me interesa este producto:'},
   cur:{code:'USD',sym:'$',dec:2},
-  rates:[],
+  /* Solo interesan dólares y bolívares. La tasa puede venir del BCV, del
+     paralelo o escribirse a mano; el catálogo publicado la consulta al
+     abrirse, así no hay que republicar cada vez que cambia. */
+  ves:{on:true,mode:'bcv',manual:'',adj:'0',dec:2,last:0,lastAt:'',lastSrc:''},
   rateNote:'',
-  showAllRates:false,
-  margin:{mode:'markup',pct:30},
-  round:{mode:'none',step:1},
+  round:{mode:'int',step:1},
   exportQ:'equilibrada',
   links:[],
   opts:{size:'lg',fit:'cover',search:true,cats:true,cart:true,stock:true,share:true},
@@ -710,24 +719,9 @@ async function cloudSave(){
 /* ============================================================
    MOTOR DE PRECIOS
    ============================================================ */
-function effPct(p){
-  if(p.mode!=='cost')return null;
-  const own=(p.marginPct===''||p.marginPct==null)?null:num(p.marginPct);
-  return own===null?num(S.margin.pct):own;
-}
-/* Devuelve el precio en MONEDA BASE, sin convertir ni redondear. */
+/* El precio lo pone la tienda directamente en dólares. */
 function basePrice(p){
-  let list;
-  if(p.mode==='direct'){ list=num(p.price); }
-  else{
-    const cost=num(p.cost), pct=effPct(p);
-    if(S.margin.mode==='margin'){
-      const d=1-pct/100;
-      list = d<=0 ? NaN : cost/d;          // margen sobre precio de venta
-    }else{
-      list = cost*(1+pct/100);             // markup sobre el costo
-    }
-  }
+  const list=num(p.price);
   const disc=clamp(num(p.discountPct),0,99);
   const final = disc>0 ? list*(1-disc/100) : list;
   return {list, final, hasDisc:disc>0};
@@ -744,11 +738,57 @@ function roundVal(v){
     default: return v;
   }
 }
-/* Lista de monedas activas: base + tasas válidas */
+/* ---------- tasa de cambio ---------- */
+/* bcv.org.ve no envía cabeceras CORS, así que el navegador no puede leerlo
+   directamente. Se usa una fuente que sí las envía y cuyo valor coincide con
+   el tipo de cambio de referencia del BCV (comprobado: 784,6633 en ambos).
+   `pick` es la ruta dentro del JSON donde viene la tasa. */
+const FUENTES={
+  bcv:{label:'BCV (oficial)',tries:[
+    /* 1º el archivo que deja el robot: es el número que publica bcv.org.ve,
+       leído en el servidor porque su web no permite lectura desde navegador */
+    {url:'tasa.json', pick:'usd', at:'fecha', src:'BCV (bcv.org.ve)'},
+    /* 2º respaldo si el robot no está instalado o falló ese día */
+    {url:'https://open.er-api.com/v6/latest/USD', pick:'rates.VES', at:'time_last_update_utc', src:'BCV (respaldo externo)'}
+  ]},
+  paralelo:{label:'Paralelo',tries:[
+    {url:'https://ve.dolarapi.com/v1/dolares/paralelo', pick:'promedio', at:'fechaActualizacion', src:'Paralelo'}
+  ]}
+};
+function pickVal(obj,path){
+  return String(path).split('.').reduce((o,k)=>(o==null?null:o[k]),obj);
+}
+/* Tasa efectiva = valor de la fuente + ajuste opcional de la tienda */
+function vesRate(){
+  const v=S.ves||{};
+  const bruto = v.mode==='manual' ? num(v.manual) : num(v.last);
+  const adj   = num(v.adj);
+  return bruto>0 ? bruto*(1+adj/100) : 0;
+}
+/* Se prueban las fuentes en orden hasta que una responda un número usable. */
+async function fetchRate(mode){
+  const f=FUENTES[mode]; if(!f)return{error:'Fuente desconocida'};
+  let ultimo='No se pudo consultar ninguna fuente';
+  for(const t of f.tries){
+    try{
+      const c=new AbortController(), to=setTimeout(()=>c.abort(),9000);
+      const r=await fetch(t.url,{signal:c.signal,cache:'no-store'});
+      clearTimeout(to);
+      if(!r.ok){ultimo='La fuente respondió '+r.status;continue;}
+      const j=await r.json();
+      const v=num(pickVal(j,t.pick));
+      if(!(v>0)){ultimo='La fuente no devolvió una tasa usable';continue;}
+      return{rate:v,at:pickVal(j,t.at)||'',src:t.src};
+    }catch(e){ultimo=e.name==='AbortError'?'La fuente tardó demasiado':'Sin conexión con la fuente';}
+  }
+  return{error:ultimo};
+}
+/* Solo interesan dólares y bolívares. */
 function currencies(){
-  const out=[{code:S.cur.code||'USD',sym:S.cur.sym||'$',dec:clamp(parseInt(S.cur.dec)||0,0,4),rate:1,base:true}];
-  S.rates.forEach(r=>{const v=num(r.rate);if(v>0&&r.code)out.push(
-    {code:r.code,sym:r.sym||'',dec:clamp(parseInt(r.dec)||0,0,4),rate:v,base:false});});
+  const out=[{code:'USD',sym:'$',dec:clamp(parseInt(S.cur.dec),0,4)||2,rate:1,base:true}];
+  const r=vesRate();
+  if(S.ves&&S.ves.on&&r>0)
+    out.push({code:'VES',sym:'Bs.',dec:clamp(parseInt(S.ves.dec),0,4)||0,rate:r,base:false});
   return out;
 }
 function fmt(v,c){
@@ -757,8 +797,11 @@ function fmt(v,c){
   return (c.sym?c.sym+' ':'')+s+(c.sym?'':' '+c.code);
 }
 /* Precio final por moneda, ya convertido y redondeado */
+/* El redondeo solo toca los bolívares: el precio en dólares es el que
+   escribió la tienda y no debe alterarse. */
 function priceIn(p,c){
   const b=basePrice(p);
+  if(c.base)return{list:b.list,final:b.final,hasDisc:b.hasDisc};
   return {list:roundVal(b.list*c.rate), final:roundVal(b.final*c.rate), hasDisc:b.hasDisc};
 }
 
@@ -880,15 +923,10 @@ function productRow(p,idx){
 
    '<div class="sep"></div>'+
    '<div class="grid g2">'+
-     '<div><label class="f">Cómo se calcula el precio</label>'+
-       '<select data-k="mode"><option value="cost">Costo + ganancia</option><option value="direct">Precio directo</option></select></div>'+
-     '<div data-costwrap><label class="f">Costo (en <span data-basecode></span>)</label><input type="number" step="0.01" min="0" data-k="cost"></div>'+
-     '<div data-pricewrap hidden><label class="f">Precio final (en <span data-basecode2></span>)</label><input type="number" step="0.01" min="0" data-k="price"></div>'+
-   '</div>'+
-   '<div class="grid g2" style="margin-top:12px">'+
-     '<div data-marginwrap><label class="f">Ganancia propia (%) <span style="text-transform:none;font-weight:500">— vacío = usar la global</span></label>'+
-       '<input type="number" step="0.1" data-k="marginPct" placeholder="global"></div>'+
-     '<div><label class="f">Descuento (%)</label><input type="number" step="0.1" min="0" max="99" data-k="discountPct"></div>'+
+     '<div><label class="f">Precio en dólares</label>'+
+       '<input type="number" step="0.01" min="0" data-k="price" placeholder="0.00"></div>'+
+     '<div><label class="f">Descuento (%) — opcional</label>'+
+       '<input type="number" step="0.1" min="0" max="99" data-k="discountPct"></div>'+
    '</div>'+
    '<div class="pricebox" data-preview></div>'+
 
@@ -934,35 +972,19 @@ function productRow(p,idx){
       head.querySelector('.psub').textContent=prodSubtitle(p);
     });
   });
-  body.querySelectorAll('[data-basecode],[data-basecode2]').forEach(s=>s.textContent=S.cur.code||'USD');
-
   function syncRow(){
-    const isCost=p.mode==='cost';
-    body.querySelector('[data-costwrap]').hidden=!isCost;
-    body.querySelector('[data-marginwrap]').hidden=!isCost;
-    body.querySelector('[data-pricewrap]').hidden=isCost;
     body.querySelector('[data-countwrap]').hidden=p.stockMode!=='count';
   }
   function updatePreviewBox(){
     const box=body.querySelector('[data-preview]');
     const cs=currencies();
     let h='';
-    if(p.mode==='cost'){
-      const pct=effPct(p), cost=num(p.cost), b=basePrice(p);
-      const gain=b.list-cost;
-      const realMargin=b.list>0?(gain/b.list*100):0;
-      h+='<div class="line"><span>Costo</span><b>'+fmt(cost,cs[0])+'</b></div>';
-      h+='<div class="line"><span>'+(S.margin.mode==='margin'?'Margen':'Markup')+' aplicado'+
-         ((p.marginPct===''||p.marginPct==null)?' (global)':' (propio)')+'</span><b>'+pct+'%</b></div>';
-      h+='<div class="line"><span>Ganancia por unidad</span><b>'+fmt(gain,cs[0])+'</b></div>';
-      h+='<div class="line"><span>Margen real sobre venta</span><b>'+realMargin.toFixed(1)+'%</b></div>';
-    }
-    h+='<div class="sep" style="margin:8px 0"></div>';
     cs.forEach(c=>{
       const v=priceIn(p,c);
-      h+='<div class="line"><span>'+c.code+(c.base?' (base)':' · tasa '+c.rate)+'</span>'+
+      h+='<div class="line"><span>'+(c.base?'Dólares':'Bolívares · tasa '+c.rate.toFixed(2))+'</span>'+
          '<span class="big">'+(v.hasDisc?'<span class="strike">'+fmt(v.list,c)+'</span> ':'')+fmt(v.final,c)+'</span></div>';
     });
+    if(cs.length<2)h+='<div class="line"><span>Sin tasa configurada: solo se mostrarán dólares.</span></div>';
     box.innerHTML=h;
   }
   syncRow();updatePreviewBox();
@@ -1087,39 +1109,49 @@ function refreshFields(){binders.forEach(f=>{try{f();}catch(e){}});}
 function afterSettings(){renderProducts();renderMarginExplain();}
 
 function renderRates(){
-  const wrap=$('#rates');wrap.innerHTML='';
-  if(!S.rates.length)wrap.innerHTML='<p class="hint" style="margin:0">Sin tasas adicionales. El catálogo mostrará solo '+(S.cur.code||'USD')+'.</p>';
-  S.rates.forEach((r,i)=>{
-    const d=document.createElement('div');d.className='grid';d.style.cssText='grid-template-columns:1fr 1fr 1.4fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px';
-    d.innerHTML='<div><label class="f">Código</label><input type="text" maxlength="6" data-r="code"></div>'+
-      '<div><label class="f">Símbolo</label><input type="text" maxlength="4" data-r="sym"></div>'+
-      '<div><label class="f">1 '+(S.cur.code||'USD')+' =</label><input type="number" step="0.0001" min="0" data-r="rate"></div>'+
-      '<div><label class="f">Dec.</label><input type="number" min="0" max="4" data-r="dec"></div>'+
-      '<div><button class="btn sm danger" data-del>✕</button></div>';
-    d.querySelectorAll('[data-r]').forEach(inp=>{
-      inp.value=r[inp.dataset.r]==null?'':r[inp.dataset.r];
-      inp.addEventListener('input',()=>{r[inp.dataset.r]=inp.value;save();renderProducts();});
-    });
-    d.querySelector('[data-del]').addEventListener('click',()=>{S.rates.splice(i,1);save();renderRates();renderProducts();});
-    wrap.appendChild(d);
-  });
-}
-$('#btn-add-rate').addEventListener('click',()=>{
-  S.rates.push({id:uid(),code:'',sym:'',rate:'',dec:2});save();renderRates();});
+  const v=S.ves||{};
+  $('#ves-box').hidden=!v.on;
+  const auto=v.mode!=='manual';
+  $('#ves-auto').hidden=!auto;
+  $('#ves-manual').hidden=auto;
 
-function renderMarginExplain(){
-  const pct=num(S.margin.pct), c=currencies()[0], ex=100;
-  let price;
-  if(S.margin.mode==='margin'){const d=1-pct/100;price=d<=0?NaN:ex/d;}
-  else price=ex*(1+pct/100);
-  const gain=price-ex, real=price>0?gain/price*100:0;
-  $('#margin-explain').innerHTML=
-    '<div class="line"><span>Ejemplo con costo de</span><b>'+fmt(ex,c)+'</b></div>'+
-    '<div class="line"><span>Precio de venta</span><b>'+fmt(price,c)+'</b></div>'+
-    '<div class="line"><span>Ganancia</span><b>'+fmt(gain,c)+'</b></div>'+
-    '<div class="line"><span>Margen real sobre la venta</span><b>'+(isFinite(real)?real.toFixed(1):'—')+'%</b></div>'+
-    (S.margin.mode==='margin'&&pct>=100?'<div class="line"><span style="color:var(--danger)">Un margen de 100% o más es imposible de calcular.</span></div>':'');
+  const st=$('#rate-state');
+  if(auto){
+    if(v.last>0){
+      const cuando=v.lastAt?new Date(v.lastAt):null;
+      const dias=cuando&&!isNaN(cuando)?Math.floor((Date.now()-cuando.getTime())/86400000):null;
+      st.innerHTML='<div class="line"><span>Última tasa consultada</span><b>'+
+        num(v.last).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:4})+'</b></div>'+
+        '<div class="line"><span>Fuente</span><b>'+(v.lastSrc||FUENTES[v.mode].label)+'</b></div>'+
+        (dias!=null?'<div class="line"><span>Publicada</span><b>'+
+          cuando.toLocaleDateString('es-VE')+(dias>0?' ('+dias+' día'+(dias>1?'s':'')+')':' (hoy)')+'</b></div>':'')+
+        /* Una tasa vieja significa vender con precios desactualizados sin
+           enterarse. Es el fallo que más dinero costaría, así que se avisa. */
+        (dias!=null&&dias>3
+          ?'<div class="line"><span class="pill err">La tasa lleva '+dias+' días sin cambiar. '+
+            'Revisa bcv.org.ve y, si no coincide, escríbela a mano.</span></div>':'');
+    }else{
+      st.innerHTML='<div class="line"><span class="pill warn">Todavía sin consultar. Toca «Consultar ahora».</span></div>';
+    }
+  }
+  const r=vesRate();
+  const adj=num(v.adj);
+  $('#ves-preview').innerHTML= r>0
+    ? '<div class="line"><span>Tasa aplicada'+(adj?' (con ajuste de '+adj+'%)':'')+'</span>'+
+      '<b class="big">Bs. '+r.toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})+'</b></div>'+
+      '<div class="line"><span>Un producto de $10 se vería como</span><b>'+
+      fmt(roundVal(10*r),currencies()[1]||{sym:'Bs.',dec:0,code:'VES'})+'</b></div>'
+    : '<div class="line"><span class="pill err">Sin tasa: el catálogo solo mostrará dólares.</span></div>';
 }
+$('#btn-fetch-rate').addEventListener('click',async ()=>{
+  const b=$('#btn-fetch-rate');b.disabled=true;b.textContent='Consultando…';
+  const r=await fetchRate(S.ves.mode);
+  b.disabled=false;b.textContent='↻ Consultar ahora';
+  if(r.error){$('#rate-state').innerHTML='<div class="line"><span class="pill err">'+r.error+'</span></div>';return;}
+  S.ves.last=r.rate;S.ves.lastAt=r.at;S.ves.lastSrc=r.src;
+  save();renderRates();renderProducts();toast('Tasa actualizada: '+r.rate.toFixed(2));
+});
+function renderMarginExplain(){renderRates();}
 
 /* ============================================================
    PANEL MARCA Y ENLACES
@@ -1235,7 +1267,17 @@ async function buildData(embed){
   const out={
     biz:{name:S.biz.name,tagline:S.biz.tagline,color:S.biz.color,heroMsg:S.biz.heroMsg,validUntil:S.biz.validUntil,logo:''},
     wa:{phone:cleanPhone(S.wa.phone),pre:S.wa.pre},
-    cur:cs,showAll:!!S.showAllRates,rateNote:S.rateNote,
+    cur:cs,showAll:false,rateNote:S.rateNote,
+    /* El catálogo consulta la tasa al abrirse: así los precios en bolívares
+       están al día sin tener que republicar, y ningún cliente ve una tasa
+       vieja por culpa de la caché. Si la consulta falla, usa esta. */
+    tasa:{on:!!(S.ves&&S.ves.on),mode:(S.ves&&S.ves.mode)||'manual',
+          adj:num(S.ves&&S.ves.adj),base:vesRate(),
+          src:(S.ves&&S.ves.lastSrc)||'',dec:clamp(parseInt(S.ves&&S.ves.dec),0,4)||0,
+          round:{mode:S.round.mode,step:num(S.round.step)||1},
+          /* rutas absolutas: el catálogo vive en /slug/, no en la raíz */
+          tries:((S.ves&&FUENTES[S.ves.mode])?FUENTES[S.ves.mode].tries:[]).map(t=>({
+            url:/^https?:/.test(t.url)?t.url:(ghURL()+t.url), pick:t.pick, at:t.at, src:t.src}))},
     links:S.links.filter(l=>l.url&&l.label),
     opts:S.opts,
     items:[]
@@ -1799,11 +1841,35 @@ async function openCat(slug){
   }
   S=Object.assign(structuredClone(DEFAULTS),data);
   S.opts=Object.assign(structuredClone(DEFAULTS.opts),data.opts||{});
+  S.ves =Object.assign(structuredClone(DEFAULTS.ves), data.ves||{});
+  migrarPrecios(data);
   CURSLUG=slug;CURSHA=r.sha||null;
   openRows.clear();
   refreshFields();renderProducts();renderRates();renderLinks();renderMarginExplain();paintLogo();checkPhone();
   gotoTab('productos');
   toast('Abierto: '+((S.biz&&S.biz.name)||slug));
+}
+
+/* Los catálogos creados antes guardaban costo + porcentaje de ganancia.
+   Ahora el precio se escribe directo, así que se calcula el precio que
+   esos productos ya tenían y se guarda como precio fijo. Nadie pierde nada. */
+function migrarPrecios(data){
+  const m=data.margin||{mode:'markup',pct:30};
+  (S.products||[]).forEach(p=>{
+    if(p.mode==='cost'&&(p.price===''||p.price==null)){
+      const pct=(p.marginPct===''||p.marginPct==null)?num(m.pct):num(p.marginPct);
+      const cost=num(p.cost);
+      const v=(m.mode==='margin')?(pct<100?cost/(1-pct/100):0):cost*(1+pct/100);
+      p.price=v?v.toFixed(2):'';
+    }
+    delete p.mode;delete p.cost;delete p.marginPct;
+  });
+  /* la tasa que estuviera puesta a mano se conserva */
+  if((!data.ves||!data.ves.mode)&&Array.isArray(data.rates)){
+    const ves=data.rates.filter(r=>/ves|bs/i.test(r.code||''))[0]||data.rates[0];
+    if(ves&&num(ves.rate)>0){S.ves.mode='manual';S.ves.manual=String(num(ves.rate));}
+  }
+  delete S.rates;delete S.margin;delete S.showAllRates;
 }
 
 async function newCat(){
@@ -1971,18 +2037,18 @@ function boot(){
   }
   $('#catlist').innerHTML=[...new Set(S.products.map(p=>p.cat).filter(Boolean))].map(c=>'<option value="'+c+'">').join('');
 
-  bindField('#baseCode',()=>S.cur.code,v=>{S.cur.code=v.toUpperCase();renderRates();});
-  bindField('#baseSym',()=>S.cur.sym,v=>S.cur.sym=v);
   bindField('#baseDec',()=>S.cur.dec,v=>S.cur.dec=v);
-  bindField('#marginMode',()=>S.margin.mode,v=>S.margin.mode=v);
-  bindField('#marginPct',()=>S.margin.pct,v=>S.margin.pct=v);
+  bindField('#vesDec',()=>S.ves.dec,v=>S.ves.dec=v);
+  bindField('#vesOn',()=>S.ves.on,v=>{S.ves.on=v;renderRates();});
+  bindField('#vesMode',()=>S.ves.mode,v=>{S.ves.mode=v;renderRates();});
+  bindField('#vesManual',()=>S.ves.manual,v=>{S.ves.manual=v;renderRates();});
+  bindField('#vesAdj',()=>S.ves.adj,v=>{S.ves.adj=v;renderRates();});
   bindField('#roundMode',()=>S.round.mode,v=>S.round.mode=v);
   bindField('#roundStep',()=>S.round.step,v=>S.round.step=v);
   bindField('#rateNote',()=>S.rateNote,v=>S.rateNote=v);
   bindField('#exportQ',()=>S.exportQ,v=>{S.exportQ=v;
     $('#q-note').textContent=(QUALITY[v]||QUALITY.equilibrada).label;showExportInfo(null);});
   $('#btn-recalc').addEventListener('click',recalc);
-  bindField('#showAllRates',()=>S.showAllRates,v=>S.showAllRates=v);
   bindField('#bizName',()=>S.biz.name,v=>S.biz.name=v);
   bindField('#bizTag',()=>S.biz.tagline,v=>S.biz.tagline=v);
   bindField('#brandColor',()=>S.biz.color||'#0b7a4b',v=>S.biz.color=v);
@@ -2253,10 +2319,57 @@ $("#nm").textContent=D.biz.name||"";
 if(D.biz.tagline){$("#tg").textContent=D.biz.tagline;}
 if(D.biz.logo){var L=$("#lg");L.src=D.biz.logo;L.hidden=false;}
 if(D.biz.heroMsg){$("#hr").innerHTML='<span class="hero">'+ce(D.biz.heroMsg)+"</span>";}
-var notes=[];
-if(D.rateNote)notes.push(D.rateNote);
-if(D.biz.validUntil)notes.push("Precios válidos hasta "+D.biz.validUntil);
-$("#nt").textContent=notes.join(" · ");
+function paintNote(tasaTxt){
+  var n=[];
+  if(tasaTxt)n.push(tasaTxt);
+  if(D.rateNote)n.push(D.rateNote);
+  if(D.biz.validUntil)n.push("Precios válidos hasta "+D.biz.validUntil);
+  $("#nt").textContent=n.join(" · ");
+}
+var T=D.tasa||{};
+function fmtR(v){return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fechaCorta(s){var d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("es-VE",{day:"2-digit",month:"2-digit"});}
+paintNote(T.on&&T.base>0?("Tasa Bs. "+fmtR(T.base)):"");
+
+/* Redondeo de bolívares, igual que en el editor */
+function rnd(v){
+  var r=T.round||{};
+  if(!isFinite(v))return v;
+  if(r.mode==="int")return Math.round(v);
+  if(r.mode==="up")return Math.ceil(v);
+  if(r.mode==="step"){var s=r.step||1;return Math.round(v/s)*s;}
+  return v;
+}
+/* La tasa se consulta cada vez que un cliente abre el catálogo. Así los
+   bolívares están al día sin republicar. Si la fuente falla o devuelve algo
+   disparatado, se queda la tasa con la que se publicó. */
+/* ojo: no llamar a esto `pick` — ya existe una variable con ese nombre
+   para los productos del pedido, y la variable pisa a la función */
+function pickPath(o,p){return String(p).split(".").reduce(function(x,k){return x==null?null:x[k];},o);}
+function actualizarTasa(){
+  if(!T.on||T.mode==="manual"||cur.length<2||!T.tries||!T.tries.length)return;
+  var i=0;
+  (function siguiente(){
+    if(i>=T.tries.length)return;
+    var t=T.tries[i++];
+    fetch(t.url,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      var v=j?parseFloat(pickPath(j,t.pick)):0;
+      if(!(v>0))return siguiente();
+      var nueva=v*(1+(T.adj||0)/100);
+      /* un valor disparatado se ignora: más vale la tasa con la que se
+         publicó que precios absurdos por un fallo de la fuente */
+      if(T.base>0&&(nueva>T.base*3||nueva<T.base/3))return;
+      cur[1].rate=nueva;
+      items.forEach(function(it){
+        it.prices[1]={list:rnd(it.prices[0].list*nueva),final:rnd(it.prices[0].final*nueva)};
+      });
+      var f=pickPath(j,t.at);
+      paintNote("Tasa Bs. "+fmtR(nueva)+(f?" · "+(fechaCorta(f)||String(f)):""));
+      draw();bar();
+      if(openId)open(openId);
+    }).catch(function(){siguiente();});
+  })();
+}
 
 /* ---------- selector de moneda ---------- */
 if(cur.length>1&&!D.showAll){
@@ -2425,6 +2538,7 @@ function bar(){
   f.querySelector("[data-clear]").addEventListener("click",function(){pick={};draw();bar();});
 }
 draw();bar();
+actualizarTasa();
 })();
 <%/script%>
 </body>
