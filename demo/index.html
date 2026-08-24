@@ -164,7 +164,7 @@ footer{border-top:1px solid var(--bd);padding:18px 0 26px;text-align:center;back
 <div class="fbar" id="fb" hidden></div>
 <script>
 (function(){
-var D={"biz":{"name":"Catálogo demo","tagline":"Prueba de funcionamiento","color":"#0b7a4b","heroMsg":"Esto es una prueba","validUntil":"","logo":""},"wa":{"phone":"584269626261","pre":"Hola! Me interesa este producto:"},"cur":[{"code":"USD","sym":"$","dec":0,"rate":1,"base":true},{"code":"VES","sym":"Bs.","dec":2,"rate":784,"base":false}],"showAll":false,"rateNote":"Tasa de ejemplo, no es real.","links":[{"id":"l1","icon":"📷","label":"Instagram","url":"https://instagram.com/"},{"id":"l2","icon":"🏬","label":"Marketplace","url":"https://facebook.com/marketplace/"}],"opts":{"size":"lg","fit":"cover","search":true,"cats":true,"cart":true,"stock":true,"share":true},"items":[{"id":"aygolunu","name":"Conjunto de niño","cat":"Conjunto juvenil ","desc":"Talla 14","hl":[],"sku":"","prices":[{"list":21.75,"final":21.75},{"list":17052,"final":17052}],"disc":0,"stock":"none","count":0,"media":[{"t":"image","u":"../media/36moh5ii.webp","w":720,"h":962}],"link":""}]};
+var D={"biz":{"name":"Catálogo demo","tagline":"Prueba de funcionamiento","color":"#0b7a4b","heroMsg":"Esto es una prueba","validUntil":"","logo":""},"wa":{"phone":"584269626261","pre":"Hola! Me interesa este producto:"},"cur":[{"code":"USD","sym":"$","dec":2,"rate":1,"base":true},{"code":"VES","sym":"Bs.","dec":2,"rate":784,"base":false}],"showAll":false,"rateNote":"Tasa de ejemplo, no es real.","tasa":{"on":true,"mode":"manual","adj":0,"base":784,"src":"","dec":2,"round":{"mode":"none","step":1},"tries":[]},"links":[{"id":"l1","icon":"📷","label":"Instagram","url":"https://instagram.com/"},{"id":"l2","icon":"🏬","label":"Marketplace","url":"https://facebook.com/marketplace/"}],"opts":{"size":"lg","fit":"cover","search":true,"cats":true,"cart":true,"stock":true,"share":true},"items":[{"id":"aygolunu","name":"Conjunto de niño","cat":"Conjunto juvenil ","desc":"Talla 14","hl":[],"sku":"","prices":[{"list":15,"final":15},{"list":11760,"final":11760}],"disc":0,"stock":"none","count":0,"media":[{"t":"image","u":"../media/36moh5ii.webp","w":720,"h":962}],"link":""}]};
 var $=function(s){return document.querySelector(s)},
     ce=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){
       return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];})};
@@ -183,10 +183,58 @@ $("#nm").textContent=D.biz.name||"";
 if(D.biz.tagline){$("#tg").textContent=D.biz.tagline;}
 if(D.biz.logo){var L=$("#lg");L.src=D.biz.logo;L.hidden=false;}
 if(D.biz.heroMsg){$("#hr").innerHTML='<span class="hero">'+ce(D.biz.heroMsg)+"</span>";}
-var notes=[];
-if(D.rateNote)notes.push(D.rateNote);
-if(D.biz.validUntil)notes.push("Precios válidos hasta "+D.biz.validUntil);
-$("#nt").textContent=notes.join(" · ");
+function paintNote(tasaTxt){
+  var n=[];
+  if(tasaTxt)n.push(tasaTxt);
+  if(D.rateNote)n.push(D.rateNote);
+  if(D.biz.validUntil)n.push("Precios válidos hasta "+D.biz.validUntil);
+  $("#nt").textContent=n.join(" · ");
+}
+var T=D.tasa||{};
+function fmtR(v){return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fechaCorta(s){var d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("es-VE",{day:"2-digit",month:"2-digit"});}
+paintNote(T.on&&T.base>0?("Tasa Bs. "+fmtR(T.base)):"");
+
+/* Redondeo de bolívares, igual que en el editor */
+function rnd(v){
+  var r=T.round||{};
+  if(!isFinite(v))return v;
+  if(r.mode==="int")return Math.round(v);
+  if(r.mode==="up")return Math.ceil(v);
+  if(r.mode==="step"){var s=r.step||1;return Math.round(v/s)*s;}
+  return v;
+}
+/* La tasa se consulta cada vez que un cliente abre el catálogo. Así los
+   bolívares están al día sin republicar. Si la fuente falla o devuelve algo
+   disparatado, se queda la tasa con la que se publicó. */
+/* ojo: no llamar a esto `pick` — ya existe una variable con ese nombre
+   para los productos del pedido, y la variable pisa a la función */
+function pickPath(o,p){return String(p).split(".").reduce(function(x,k){return x==null?null:x[k];},o);}
+function actualizarTasa(){
+  if(!T.on||T.mode==="manual"||cur.length<2||!T.tries||!T.tries.length)return;
+  var i=0;
+  (function siguiente(){
+    if(i>=T.tries.length)return;
+    var t=T.tries[i++];
+    fetch(t.url,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      var v=j?parseFloat(pickPath(j,t.pick)):0;
+      if(!(v>0))return siguiente();
+      var nueva=v*(1+(T.adj||0)/100);
+      /* un valor disparatado se ignora: más vale la tasa con la que se
+         publicó que precios absurdos por un fallo de la fuente */
+      if(!t.trust&&T.base>0&&(nueva>T.base*3||nueva<T.base/3))return;
+      cur[1].rate=nueva;
+      items.forEach(function(it){
+        it.prices[1]={list:rnd(it.prices[0].list*nueva),final:rnd(it.prices[0].final*nueva)};
+      });
+      var f=pickPath(j,t.at);
+      T.vigente=nueva; T.vigenteAt=f?String(f):"";
+      paintNote("Tasa Bs. "+fmtR(nueva)+(f?" · "+(fechaCorta(f)||String(f)):""));
+      draw();bar();
+      if(openId)open(openId);
+    }).catch(function(){siguiente();});
+  })();
+}
 
 /* ---------- selector de moneda ---------- */
 if(cur.length>1&&!D.showAll){
@@ -226,6 +274,12 @@ function wa(txt){return D.wa.phone?"https://wa.me/"+D.wa.phone+"?text="+encodeUR
 function lineOf(it){
   var c=cur[ci],p=pr(it,ci);
   return "• "+it.name+(it.sku?" ["+it.sku+"]":"")+" — *"+fmt(p.final,c)+"*";
+}
+/* Deja constancia de la tasa con la que se calculo el monto en bolivares. */
+function pieTasa(){
+  if(ci===0||cur.length<2)return "";
+  var r=T.vigente||cur[1].rate;
+  return "\n_Calculado a Bs. "+fmtR(r)+" por dólar"+(T.vigenteAt?" ("+T.vigenteAt+")":"")+"._";
 }
 
 /* ---------- tarjetas ---------- */
@@ -294,7 +348,7 @@ function open(id){
     : it.stock==="count"?(it.count>0?it.count+" disponibles":"Agotado")
     : it.stock==="out"?"Agotado":"";
   var msg=(D.wa.pre||"Hola! Me interesa este producto:")+"\n\n"+lineOf(it)+
-    (it.sku?"":"")+"\n\n"+(D.biz.name||"");
+    pieTasa()+"\n\n"+(D.biz.name||"");
   var alts=cur.map(function(cc,k){return k===ci?null:cc.code+": "+fmt(it.prices[k].final,cc);}).filter(Boolean);
 
   $("#pn").innerHTML=
@@ -347,7 +401,7 @@ function bar(){
   var sel=items.filter(function(it){return pick[it.id]});
   var tot=sel.reduce(function(s,it){return s+(pr(it,ci).final||0)},0);
   var msg="Hola! Quiero pedir:\n\n"+sel.map(lineOf).join("\n")+
-    "\n\n*Total: "+fmt(tot,c)+"*"+(c.rate!==1?"\n_(tasa 1 "+cur[0].code+" = "+c.rate+" "+c.code+")_":"");
+    "\n\n*Total: "+fmt(tot,c)+"*"+pieTasa();
   f.hidden=false;
   f.innerHTML='<button class="clr" type="button" data-clear title="Vaciar">✕</button>'+
     '<div class="txt"><b>'+sel.length+" producto"+(sel.length>1?"s":"")+"</b>Total "+fmt(tot,c)+"</div>"+
@@ -355,6 +409,7 @@ function bar(){
   f.querySelector("[data-clear]").addEventListener("click",function(){pick={};draw();bar();});
 }
 draw();bar();
+actualizarTasa();
 })();
 </script>
 </body>
